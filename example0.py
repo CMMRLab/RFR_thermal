@@ -331,7 +331,19 @@ if __name__ == "__main__":
     #--------------------------------#
     # Compute the thermal properties #
     #--------------------------------#
+    # Compute Tg
     tg, does_intersect = rfr.line_intersection(glassy_coeffs, rubbery_coeffs)
+    
+    # Average room temperature data to compute the CTE
+    room_temp = 300
+    delta     = 10  # Average room_temp += 10 K
+    reduced_x, reduced_y = rfr.window(temperature, filtered_volume, xlo=room_temp-delta, xhi=room_temp+delta)
+    
+    # Compute CTE's based on room temperature average
+    vol_avg     = np.mean(reduced_y)
+    glassy_cte  = (1/(3*vol_avg))*glassy_coeffs[1]
+    rubbery_cte = (1/(3*vol_avg))*rubbery_coeffs[1]
+    
     
     
     
@@ -389,10 +401,15 @@ if __name__ == "__main__":
     ax1.plot(vx, vy, '--', lw=lw/2, color='black')
     ax1.plot(*tg, 'p', ms=2*ms, color=tg_color, mec='black', mew=1.2, label='$T_g$ ({:.2f})'.format(tg[0]))
     
-    ax1.legend(loc='upper left', bbox_to_anchor=(0, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    ax1.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax1.set_xlabel(xlabel, fontsize=fs)
     ax1.set_ylabel(ylabel, fontsize=fs)
     ax1.tick_params(axis='both', which='major', labelsize=fs)
+    
+    if glassy_cte is not None and rubbery_cte is not None:
+        title = 'Glassy-CTE   = {:.6e}\nRubbery-CTE= {:.6e}'.format(glassy_cte, rubbery_cte)
+    else: title = 'Glassy-CTE  = {}\nRubbery-CTE= {}'.format(glassy_cte, rubbery_cte)
+    ax1.set_title(title, loc='left', x=0.05, y=0.8, pad=15, fontsize=fs)
     
     
     # Plot ax2 data
