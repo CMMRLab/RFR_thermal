@@ -340,7 +340,7 @@ if __name__ == "__main__":
     #---------------------------------#
     # General plot settings
     fs = 12   # Set fontsize
-    ms = 5.0  # General marker size (there maybe scaling of these in the plotting code)
+    ms = 6.0  # General marker size (there maybe scaling of these in the plotting code)
     lw = 2.5  # General line-width (there maybe scaling of these in the plotting code)
     plot_dim = 4 # Sub-figure dimensions
     legend_fs_scale = 0.8 # scales legend font size
@@ -354,7 +354,7 @@ if __name__ == "__main__":
     glassy_color  = '#0097A7'
     rubbery_color = 'tab:red'
     
-    filter_color  = 'black'
+    filter_color  = 'dimgray'
     
     # Set axis label mapping (if not present code will default to LAMMPS column names)
     axis_labels = {} # {'Xdata-colum':'desired X-axis label', 'Ydata-colum':'desired Y-axis label'}
@@ -380,14 +380,14 @@ if __name__ == "__main__":
     ax1.plot(temperature, volume,          '.', ms=ms, color=raw_color,    label='LAMMPS data')
     ax1.plot(temperature, filtered_volume, '-', lw=lw, color=filter_color, label='Filtered data')
     
-    ax1.plot(glassy_bounds, glassy_volume,    marker='|', ls='--', ms=ms, lw=lw, color=glassy_color,  label='Glassy region')
-    ax1.plot(rubbery_bounds, rubbery_volume,  marker='|', ls='--', ms=ms, lw=lw, color=rubbery_color, label='Rubbery region')
+    ax1.plot(glassy_bounds, glassy_volume,    marker='|', ls='--', ms=2*ms, lw=lw, color=glassy_color,  label='Glassy region')
+    ax1.plot(rubbery_bounds, rubbery_volume,  marker='|', ls='--', ms=2*ms, lw=lw, color=rubbery_color, label='Rubbery region')
     
     # Generate "v-connecting lines"
     vx = [glassy_bounds[-1], tg[0], rubbery_bounds[0]]
     vy = [glassy_volume[-1], tg[1], rubbery_volume[0]]
     ax1.plot(vx, vy, '--', lw=lw/2, color='black')
-    ax1.plot(*tg, 'p', ms=2*ms, color=tg_color, mec='black', mew=1.2, label='$T_g$ ({:.6f})'.format(tg[0]))
+    ax1.plot(*tg, 'p', ms=2*ms, color=tg_color, mec='black', mew=1.2, label='$T_g$ ({:.2f})'.format(tg[0]))
     
     ax1.legend(loc='upper left', bbox_to_anchor=(0, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax1.set_xlabel(xlabel, fontsize=fs)
@@ -418,16 +418,21 @@ if __name__ == "__main__":
     
     
     # Plot ax3 data
-    ax3.plot(temperature, filtered_volume, '.', ms=ms, color=filter_color, alpha=0.35, label='LAMMPS data')
-    ax3.plot(glassy_bounds, glassy_volume, marker='|', ls='--', ms=ms, lw=lw, color=glassy_color,  label='Glassy region')
-    
     norm = mpl.colors.Normalize(vmin=min(ic_list), vmax=max(ic_list))
     cmap = plt.cm.coolwarm  # blue -> red
+    zorders = []
     for ic, (tmp_passes, tmp_bounds, tmp_coeffs, tg_guess) in guesses.items():
         color = cmap(norm(ic))
         tmp_volume = tmp_coeffs[1]*tmp_bounds + tmp_coeffs[0] # tmp volume data from tmp bounds (for plotting)
-        ax3.plot(tmp_bounds, tmp_volume,  marker='|', ls='-', ms=1.5*ms, lw=lw, color=color, alpha=1.0)
-        ax3.plot(*tg_guess, 'p', ms=1.5*ms, color=color)
+        span = max(tmp_bounds) - min(tmp_bounds) 
+        zorder = 1/span # Let smaller line segments have a larger zorder
+        zorders.append(zorder)
+        
+        ax3.plot(tmp_bounds, tmp_volume,  marker='|', ls='-', ms=1.5*ms, lw=lw, color=color, zorder=zorder, alpha=1.0)
+        ax3.plot(*tg_guess, 'p', ms=1.5*ms, mec='black', mew=1.2, zorder=100*zorder, color=color)
+        
+    ax3.plot(temperature, filtered_volume, '.', ms=ms, color=filter_color, alpha=0.35, zorder=min(zorders)/10, label='LAMMPS data')
+    ax3.plot(glassy_bounds, glassy_volume, marker='|', ls='--', ms=2*ms, lw=lw, color=glassy_color,  label='Glassy region')
 
     sm = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
     sm.set_array([])
@@ -443,12 +448,12 @@ if __name__ == "__main__":
 
     # Plot ax4 data
     if str(wn).startswith('op'):
-        psd_color = filter_color
+        psd_color = 'tab:blue' #filter_color
         mean_color = '#ff9d3aff'
         wn_color = 'tab:green'
         ax4.stem(wns, psd, linefmt=psd_color, basefmt=psd_color, markerfmt='.', label='$|X(f)|^2/N$')
-        ax4.plot(wn_critical, power, 'o', ms=8, color=wn_color , label='Critical frequency\n({:.4f}, {:.4f})'.format(wn_critical, power))
-        ax4.axhline(mean_psd, color=mean_color, ls='--', lw=2, label='Mean power={:.4f}'.format(mean_psd))
+        ax4.plot(wn_critical, power, 'o', ms=8, color=wn_color , label='Cutoff frequency\n({:.4f}, {:.2f})'.format(wn_critical, power))
+        ax4.axhline(mean_psd, color=mean_color, ls='--', lw=2, label='Average power={:.2f}'.format(mean_psd))
         ax4.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
         ax4.set_ylabel('Power Spectral Density', fontsize=fs)
         ax4.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
@@ -458,9 +463,11 @@ if __name__ == "__main__":
         
         
     # Plot ax5 data
-    ax5.plot(ics, lowers, '-v', lw=lw, ms=ms, color='tab:blue',   label='Lower bound')
-    ax5.plot(ics, uppers, '-^', lw=lw, ms=ms, color='tab:red',    label='Upper bound')
-    ax5.plot(ics, tgs,    '-p', lw=lw, ms=ms, color='tab:purple', label='Tg')
+    #ax5.plot(ics, lowers, '-v', lw=lw, ms=ms, color='tab:blue',   label='Lower bound')
+    #ax5.plot(ics, uppers, '-^', lw=lw, ms=ms, color='tab:red',    label='Upper bound')
+    ax5.plot(ics, bound_penetrations, '-o', lw=lw, ms=ms, color='tab:blue', label='Bound Penetrations')
+    ax5.plot(ics, uppers-lowers, '-s', lw=lw, ms=ms, color='tab:grey', label='Rubbery widths')
+    ax5.plot(ics, tgs,    '-p', lw=lw, ms=ms, color='tab:purple', label='Possible $T_g$s')
     
     ax5.set_xlabel('Initial-condition Temperature ({})'.format(axis_labels['xunits']), fontsize=fs, color='black')
     ax5.set_ylabel('Possible Rubbery states ({})'.format(axis_labels['xunits']), fontsize=fs, color='black')
@@ -506,11 +513,11 @@ if __name__ == "__main__":
             yd = info['density']
             
             # Alternate small left/right x-offsets
-            dx = (-1)**n * 0.02*xrange
+            dx = (-1)**n * 0.05*xrange
             xtxt = xt + dx
 
             # Alternate between two label heights
-            ytext = ytext_hi if n % 2 == 0 else ytext_lo
+            ytext = ytext_hi if n % 3 == 0 else ytext_lo
             if info['selected']:
                 bbox = dict(boxstyle='round,pad=0.25', fc='white', ec='black', lw=1.2)
                 arrow_color = 'black'
