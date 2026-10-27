@@ -41,9 +41,35 @@ import modules.signals as signals
 import modules.rfr_thermal as rfr
 import matplotlib.pyplot as plt
 import matplotlib as mpl  
-plt.close('all')
-mpl.rc('font',family='Calibri')
 import numpy as np
+
+
+# General plot settings
+plt.close('all')
+plt.rcParams.update({
+    # Main text
+    'font.family': 'sans-serif',
+    'font.sans-serif': ['Arial', 'Helvetica', 'DejaVu Sans'],
+    'font.size': 7,
+
+    # Plot text
+    'axes.labelsize': 7,
+    'axes.titlesize': 7,
+    'xtick.labelsize': 6,
+    'ytick.labelsize': 6,
+    'legend.fontsize': 6,
+
+    # Mathematical text
+    'mathtext.fontset': 'custom',
+    'mathtext.rm': 'Arial',
+    'mathtext.it': 'Arial:italic',
+    'mathtext.bf': 'Arial:bold',
+
+    # Keep fonts editable when exported
+    'pdf.fonttype': 42,
+    'ps.fonttype': 42,
+    'svg.fonttype': 'none',
+})
 
 
 
@@ -239,8 +265,8 @@ if __name__ == "__main__":
         except: continue # skip any failed attempts
     
         # Compute the linear regression and get the interseciton. Skip over meaningles results
-        rubbery_coeffs = rfr.linear_regression(temperature, filtered_volume, xlo=min(bounds), xhi=max(bounds))
-        tg_guess, does_intersect = rfr.line_intersection(glassy_coeffs, rubbery_coeffs)
+        guessed_coeffs = rfr.linear_regression(temperature, filtered_volume, xlo=min(bounds), xhi=max(bounds))
+        tg_guess, does_intersect = rfr.line_intersection(glassy_coeffs, guessed_coeffs)
         if not does_intersect: continue # skip over non-intersecting guesses
         if tg_guess[0] < min(temperature): continue # Tg should be within xdata-span (lower-side)
         if tg_guess[0] > max(temperature): continue # Tg should be within xdata-span (upper-side)
@@ -254,12 +280,12 @@ if __name__ == "__main__":
         bound_weight = np.exp(-bound_penetration / tau)
         
         # Log the results
-        guesses[ic] = [passes, bounds, rubbery_coeffs, tg_guess]
+        guesses[ic] = [passes, bounds, guessed_coeffs, tg_guess]
         bound_penetrations.append( bound_penetration )
         bound_weights.append( bound_weight )
         lowers.append( min(bounds) )
         uppers.append( max(bounds) )
-        slopes.append( rubbery_coeffs[1] )
+        slopes.append( guessed_coeffs[1] )
         tgs.append( tg_guess[0] )
         ics.append( ic )
                 
@@ -302,15 +328,20 @@ if __name__ == "__main__":
     rubbery_coeffs = rfr.linear_regression(temperature, filtered_volume, xlo=min(rubbery_bounds), xhi=max(rubbery_bounds))
     rubbery_volume = rubbery_coeffs[1]*rubbery_bounds + rubbery_coeffs[0] # rubbery volume data from rubbery bounds (for plotting)
     
+    #--------------------------------#
+    # Compute the thermal properties #
+    #--------------------------------#
+    tg, does_intersect = rfr.line_intersection(glassy_coeffs, rubbery_coeffs)
+    
     
     
     #---------------------------------#
     # Plot the results of this method #
     #---------------------------------#
     # General plot settings
-    fs = 12 # Set fontsize
-    ms = 4  # General marker size (there maybe scaling of these in the plotting code)
-    lw = 2  # General line-width (there maybe scaling of these in the plotting code)
+    fs = 12   # Set fontsize
+    ms = 5.0  # General marker size (there maybe scaling of these in the plotting code)
+    lw = 2.5  # General line-width (there maybe scaling of these in the plotting code)
     plot_dim = 4 # Sub-figure dimensions
     legend_fs_scale = 0.8 # scales legend font size
     
@@ -338,9 +369,9 @@ if __name__ == "__main__":
     
     # Set-up plot orientation
     if plot_orientation == 'wide':
-        fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(3*plot_dim, 2*plot_dim))
+        fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(3.5*plot_dim, 2*plot_dim))
     elif plot_orientation == 'long':
-        fig, ((ax1, ax4), (ax2, ax5), (ax3, ax6)) = plt.subplots(3, 2, figsize=(2*plot_dim, 3*plot_dim))
+        fig, ((ax1, ax4), (ax2, ax5), (ax3, ax6)) = plt.subplots(3, 2, figsize=(2.5*plot_dim, 3*plot_dim))
     else:
         raise Exception('ERROR plot_orientation="{}", but only "wide" and "long" are supported'.format(plot_orientation))
     
@@ -351,6 +382,12 @@ if __name__ == "__main__":
     
     ax1.plot(glassy_bounds, glassy_volume,    marker='|', ls='--', ms=ms, lw=lw, color=glassy_color,  label='Glassy region')
     ax1.plot(rubbery_bounds, rubbery_volume,  marker='|', ls='--', ms=ms, lw=lw, color=rubbery_color, label='Rubbery region')
+    
+    # Generate "v-connecting lines"
+    vx = [glassy_bounds[-1], tg[0], rubbery_bounds[0]]
+    vy = [glassy_volume[-1], tg[1], rubbery_volume[0]]
+    ax1.plot(vx, vy, '--', lw=lw/2, color='black')
+    ax1.plot(*tg, 'p', ms=2*ms, color=tg_color, mec='black', mew=1.2, label='$T_g$ ({:.6f})'.format(tg[0]))
     
     ax1.legend(loc='upper left', bbox_to_anchor=(0, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax1.set_xlabel(xlabel, fontsize=fs)
@@ -395,7 +432,7 @@ if __name__ == "__main__":
     sm = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
     sm.set_array([])
     cbar = fig.colorbar(sm, ax=ax3)
-    cbar.set_label('Guessed IC Temperature ({})'.format(axis_labels['xunits']), fontsize=fs)
+    cbar.set_label('Initial-condition Temperature ({})'.format(axis_labels['xunits']), fontsize=fs)
     cbar.ax.tick_params(labelsize=fs)
     
     ax3.legend(loc='upper left', bbox_to_anchor=(0, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
@@ -425,8 +462,7 @@ if __name__ == "__main__":
     ax5.plot(ics, uppers, '-^', lw=lw, ms=ms, color='tab:red',    label='Upper bound')
     ax5.plot(ics, tgs,    '-p', lw=lw, ms=ms, color='tab:purple', label='Tg')
     
-    ax5.legend(loc='upper left', bbox_to_anchor=(0, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-    ax5.set_xlabel('Guessed IC Temperature ({})'.format(axis_labels['xunits']), fontsize=fs, color='black')
+    ax5.set_xlabel('Initial-condition Temperature ({})'.format(axis_labels['xunits']), fontsize=fs, color='black')
     ax5.set_ylabel('Possible Rubbery states ({})'.format(axis_labels['xunits']), fontsize=fs, color='black')
     ax5.tick_params(axis='x', labelsize=fs, colors='black')
     ax5.tick_params(axis='y', labelsize=fs, colors='black')
@@ -434,8 +470,12 @@ if __name__ == "__main__":
     twin_color = 'tab:cyan'
     ax5_twin = ax5.twinx()
     ax5_twin.plot(ics, slopes, '-d', lw=lw, ms=ms, color=twin_color)
-    ax5_twin.set_ylabel('Possible rubbery slopes ({}/{})'.format(axis_labels['yunits'], axis_labels['xunits']), fontsize=fs, color=twin_color)
+    ax5_twin.set_ylabel('Possible rubbery slopes ({}/{})'.format(axis_labels['yunits'], axis_labels['xunits']),
+        fontsize=fs, color=twin_color)
     ax5_twin.tick_params(axis='y', labelsize=fs, colors=twin_color)
+    
+    handles, labels = ax5.get_legend_handles_labels()
+    ax5_twin.legend(handles, labels, loc='upper left', bbox_to_anchor=(0, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     
     # Plot ax6 data
     if tg_kde is not None:
@@ -446,10 +486,10 @@ if __name__ == "__main__":
         temp_plot = np.arange(temp[0], temp[-1] + plot_dx, plot_dx)
         tg_kde_plot = np.interp(temp_plot, temp, tg_kde)
         
-        ax6.plot(temp_plot, tg_kde_plot, lw=2, color='tab:purple', label='Convergence Kernel Density')
+        ax6.plot(temp_plot, tg_kde_plot, lw=2, color='tab:purple', label='Convergence kernel\ndensity estimate (KDE)')
         ax6.fill_between(temp_plot, tg_kde_plot, alpha=0.25, color='tab:purple')
     if xpeaks is not None:
-        ax6.plot(xpeaks, ypeaks, '*', ms=2*ms, mfc='tab:purple', mec='black', mew=1.2, label='PDF - Peaks')
+        ax6.plot(xpeaks, ypeaks, '*', ms=2*ms, mfc='tab:purple', mec='black', mew=1.2, label='KDE - Peaks')
         
         # Annotate peaks with selection criterion labels
         ymax = max(tg_kde)
@@ -512,9 +552,9 @@ if __name__ == "__main__":
         ax6.axvline(selected_tg, color='black', ls='--', lw=lw, label='Selected Tg = {:.2f}'.format(selected_tg))
         
         ax6.legend(loc='upper left', bbox_to_anchor=(0, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
-        
-        #ax6.set_xlabel('{} {}'.format(x_label, x_units), fontsize=fs)
-        #ax6.set_ylabel('Estimated Probability Density (1/{})'.format(x_units.replace('(', '').replace(')', '')))
+        ax6.set_xlabel("Possible $T_g$s ({})".format(axis_labels['xunits']), fontsize=fs)
+        ax6.set_ylabel('Estimated probabilty density', fontsize=fs)
+        ax6.tick_params(axis='both', which='major', labelsize=fs)
 
     
     fig.tight_layout()
