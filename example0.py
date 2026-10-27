@@ -355,7 +355,8 @@ if __name__ == "__main__":
     ms = 6.0  # General marker size (there maybe scaling of these in the plotting code)
     lw = 2.5  # General line-width (there maybe scaling of these in the plotting code)
     plot_dim = 4 # Sub-figure dimensions
-    legend_fs_scale = 0.8 # scales legend font size
+    legend_fs_scale = 0.85 # scales legend font size
+    label_rel_pos   = (0.02, 0.98)
     
     # Coloring
     ref_color     = 'tab:grey'
@@ -405,11 +406,12 @@ if __name__ == "__main__":
     ax1.set_xlabel(xlabel, fontsize=fs)
     ax1.set_ylabel(ylabel, fontsize=fs)
     ax1.tick_params(axis='both', which='major', labelsize=fs)
+    ax1.text(*label_rel_pos, '(a)', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     if glassy_cte is not None and rubbery_cte is not None:
         title = 'Glassy-CTE   = {:.6e}\nRubbery-CTE= {:.6e}'.format(glassy_cte, rubbery_cte)
     else: title = 'Glassy-CTE  = {}\nRubbery-CTE= {}'.format(glassy_cte, rubbery_cte)
-    ax1.set_title(title, loc='left', x=0.05, y=0.825, pad=15, fontsize=fs)
+    ax1.set_title(title, loc='left', x=0.1, y=0.825, pad=15, fontsize=fs)
     
     
     # Plot ax2 data
@@ -432,6 +434,7 @@ if __name__ == "__main__":
     ax2.set_xlabel(xlabel, fontsize=fs)
     ax2.set_ylabel('$R^2$', fontsize=fs)
     ax2.tick_params(axis='both', which='major', labelsize=fs)
+    ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     
     # Plot ax3 data
@@ -457,10 +460,11 @@ if __name__ == "__main__":
     cbar.set_label('Initial-condition Temperature ({})'.format(axis_labels['xunits']), fontsize=fs)
     cbar.ax.tick_params(labelsize=fs)
     
-    ax3.legend(loc='upper left', bbox_to_anchor=(0, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    ax3.legend(loc='upper left', bbox_to_anchor=(0.1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax3.set_xlabel(xlabel, fontsize=fs)
     ax3.set_ylabel(ylabel, fontsize=fs)
     ax3.tick_params(axis='both', which='major', labelsize=fs)
+    ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
 
     # Plot ax4 data
@@ -473,6 +477,7 @@ if __name__ == "__main__":
         ax4.axhline(mean_psd, color=mean_color, ls='--', lw=2, label='Average power={:.2f}'.format(mean_psd))
         ax4.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
         ax4.set_ylabel('Power Spectral Density', fontsize=fs)
+        ax4.text(*label_rel_pos, '(d)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
         ax4.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
         ax4.tick_params(axis='both', which='major', labelsize=fs)
         ax4.set_xlim((-0.001, 0.0125)) # Comment/uncomment for xlimits
@@ -490,6 +495,7 @@ if __name__ == "__main__":
     ax5.set_ylabel('Possible Rubbery states ({})'.format(axis_labels['xunits']), fontsize=fs, color='black')
     ax5.tick_params(axis='x', labelsize=fs, colors='black')
     ax5.tick_params(axis='y', labelsize=fs, colors='black')
+    ax5.text(*label_rel_pos, '(e)', transform=ax5.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
     twin_color = 'tab:cyan'
     ax5_twin = ax5.twinx()
@@ -499,7 +505,7 @@ if __name__ == "__main__":
     ax5_twin.tick_params(axis='y', labelsize=fs, colors=twin_color)
     
     handles, labels = ax5.get_legend_handles_labels()
-    ax5_twin.legend(handles, labels, loc='upper left', bbox_to_anchor=(0, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    ax5_twin.legend(handles, labels, loc='upper left', bbox_to_anchor=(0.1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     
     # Plot ax6 data
     if tg_kde is not None:
@@ -575,10 +581,11 @@ if __name__ == "__main__":
         ax6.set_ylim(top=2.25*ymax)
         ax6.axvline(selected_tg, color='black', ls='--', lw=lw, label='Selected Tg = {:.2f}'.format(selected_tg))
         
-        ax6.legend(loc='upper left', bbox_to_anchor=(0, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+        ax6.legend(loc='upper left', bbox_to_anchor=(0.1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
         ax6.set_xlabel("Possible $T_g$s ({})".format(axis_labels['xunits']), fontsize=fs)
         ax6.set_ylabel('Estimated probabilty density', fontsize=fs)
         ax6.tick_params(axis='both', which='major', labelsize=fs)
+        ax6.text(*label_rel_pos, '(f)', transform=ax6.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
 
     
     fig.tight_layout()
