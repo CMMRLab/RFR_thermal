@@ -351,23 +351,20 @@ if __name__ == "__main__":
     # Plot the results of this method #
     #---------------------------------#
     # General plot settings
-    fs = 12   # Set fontsize
+    fs = 13   # Set fontsize
     ms = 6.0  # General marker size (there maybe scaling of these in the plotting code)
     lw = 2.5  # General line-width (there maybe scaling of these in the plotting code)
     plot_dim = 4 # Sub-figure dimensions
-    legend_fs_scale = 0.85 # scales legend font size
+    legend_fs_scale = 0.75 # scales legend font size
     label_rel_pos   = (0.02, 0.98)
     
     # Coloring
-    ref_color     = 'tab:grey'
     tg_color      = '#ff9d3aff'
-    exp_color     = '#EE3377'
     raw_color     = '#bbbbbbff'
-    filter_color  = '#2c7fb8ff'
+    filter_color  = 'dimgray'
     glassy_color  = '#0097A7'
     rubbery_color = 'tab:red'
     
-    filter_color  = 'dimgray'
     
     # Set axis label mapping (if not present code will default to LAMMPS column names)
     axis_labels = {} # {'Xdata-colum':'desired X-axis label', 'Ydata-colum':'desired Y-axis label'}
@@ -411,30 +408,42 @@ if __name__ == "__main__":
     if glassy_cte is not None and rubbery_cte is not None:
         title = 'Glassy-CTE   = {:.6e}\nRubbery-CTE= {:.6e}'.format(glassy_cte, rubbery_cte)
     else: title = 'Glassy-CTE  = {}\nRubbery-CTE= {}'.format(glassy_cte, rubbery_cte)
-    ax1.set_title(title, loc='left', x=0.1, y=0.825, pad=15, fontsize=fs)
+    ax1.set_title(title, loc='left', x=0.1, y=0.78, pad=15, fontsize=fs)
     
     
     # Plot ax2 data
-    ax2.plot(gf1['fringe'], gf1['r2'], '-', lw=lw, color=gf1['color'], label='1st pass (forward)')
-    ax2.plot(gr1['fringe'], gr1['r2'], '-', lw=lw, color=gr1['color'], label='2nd pass (reverse)')
-    ax2.plot(gf2['fringe'], gf2['r2'], '-', lw=lw, color=gf2['color'], label='3rd pass (forward)')
-    ax2.plot(gf1['max_fringe'], gf1['max_r2'], '<', ms=ms, mec=gf1['color'], mfc='white', mew=1.25*lw, label='max(1st pass)')
-    ax2.plot(gr1['max_fringe'], gr1['max_r2'], '>', ms=ms, mec=gr1['color'], mfc='white', mew=1.25*lw, label='max(2nd pass)')
-    ax2.plot(gf2['max_fringe'], gf2['max_r2'], '<', ms=ms, mec=gf2['color'], mfc='white', mew=1.25*lw, label='max(3rd pass)')
+    ax2.plot(gf1['fringe'], gf1['r2'], '-', lw=lw, color=gf1['color'], label='Glassy: 1st pass (forward)')
+    ax2.plot(gr1['fringe'], gr1['r2'], '-', lw=lw, color=gr1['color'], label='Glassy: 2nd pass (backward)')
+    ax2.plot(gf2['fringe'], gf2['r2'], '-', lw=lw, color=gf2['color'], label='Glassy: 3rd pass (forward)')
+    ax2.plot(gf1['max_fringe'], gf1['max_r2'], '<', ms=ms, mec=gf1['color'], mfc='white', mew=lw)#, label='max(1st pass)')
+    ax2.plot(gr1['max_fringe'], gr1['max_r2'], '>', ms=ms, mec=gr1['color'], mfc='white', mew=lw)#, label='max(2nd pass)')
+    ax2.plot(gf2['max_fringe'], gf2['max_r2'], '<', ms=ms, mec=gf2['color'], mfc='white', mew=lw)#, label='max(3rd pass)')
     
-    ax2.plot(rr1['fringe'], rr1['r2'], '-', lw=lw, color=rr1['color'], label='1st pass (reverse)')
-    ax2.plot(rf1['fringe'], rf1['r2'], '-', lw=lw, color=rf1['color'], label='2nd pass (forward)')
-    ax2.plot(rr2['fringe'], rr2['r2'], '-', lw=lw, color=rr2['color'], label='3rd pass (reverse)')
+    ax2.plot(rr1['fringe'], rr1['r2'], '-', lw=lw, color=rr1['color'], label='Rubbery: 1st pass (backward)')
+    ax2.plot(rf1['fringe'], rf1['r2'], '-', lw=lw, color=rf1['color'], label='Rubbery: 2nd pass (forward)')
+    ax2.plot(rr2['fringe'], rr2['r2'], '-', lw=lw, color=rr2['color'], label='Rubbery: 3rd pass (backward)')
+    ax2.plot(rr1['max_fringe'], rr1['max_r2'], '>', ms=ms, mec=rr1['color'], mfc='white', mew=lw)#, label='max(1st pass)')
+    ax2.plot(rf1['max_fringe'], rf1['max_r2'], '<', ms=ms, mec=rf1['color'], mfc='white', mew=lw)#, label='max(2nd pass)')
+    ax2.plot(rr2['max_fringe'], rr2['max_r2'], '>', ms=ms, mec=rr2['color'], mfc='white', mew=lw)#, label='max(3rd pass)')
     
-    ax2.plot(rr1['max_fringe'], rr1['max_r2'], '>', ms=ms, mec=rr1['color'], mfc='white', mew=1.25*lw, label='max(1st pass)')
-    ax2.plot(rf1['max_fringe'], rf1['max_r2'], '<', ms=ms, mec=rf1['color'], mfc='white', mew=1.25*lw, label='max(2nd pass)')
-    ax2.plot(rr2['max_fringe'], rr2['max_r2'], '>', ms=ms, mec=rr2['color'], mfc='white', mew=1.25*lw, label='max(3rd pass)')
-    
-    #ax2.legend(loc='upper left', bbox_to_anchor=(0, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    ax2.legend(loc='lower left', bbox_to_anchor=(0, 0), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax2.set_xlabel(xlabel, fontsize=fs)
     ax2.set_ylabel('$R^2$', fontsize=fs)
     ax2.tick_params(axis='both', which='major', labelsize=fs)
-    ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    if plot_orientation == 'wide':
+        ax2.text(*label_rel_pos, '(b)', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    elif plot_orientation == 'long':
+        ax2.text(*label_rel_pos, '(c)', transform=ax2.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+        
+    all_r2  = np.concatenate([gf1['r2'], gr1['r2'],  gf2['r2'], rr1['r2'], rf1['r2'], rr2['r2']])
+    min_r2  = min(all_r2)
+    max_r2  = max(all_r2)
+    tol_r2  = 10/100 # scale by 10%
+    span_r2 = max_r2 - min_r2
+    ylo = min_r2 - tol_r2*span_r2
+    yhi = max_r2 + tol_r2*span_r2
+    ax2.set_ylim((ylo, yhi))
+    
     
     
     # Plot ax3 data
@@ -451,8 +460,8 @@ if __name__ == "__main__":
         ax3.plot(tmp_bounds, tmp_volume,  marker='|', ls='-', ms=1.5*ms, lw=lw, color=color, zorder=zorder, alpha=1.0)
         ax3.plot(*tg_guess, 'p', ms=1.5*ms, mec='black', mew=1.2, zorder=100*zorder, color=color)
         
-    ax3.plot(temperature, filtered_volume, '.', ms=ms, color=filter_color, alpha=0.35, zorder=min(zorders)/10, label='LAMMPS data')
-    ax3.plot(glassy_bounds, glassy_volume, marker='|', ls='--', ms=2*ms, lw=lw, color=glassy_color,  label='Glassy region')
+    ax3.plot(temperature, filtered_volume, '-', lw=1.5*lw, color=filter_color, zorder=min(zorders)/10, label='Filtered data')
+    ax3.plot(glassy_bounds, glassy_volume, marker='|', ls='--', ms=2*ms, lw=lw, color=glassy_color, label='Glassy region')
 
     sm = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
     sm.set_array([])
@@ -460,11 +469,14 @@ if __name__ == "__main__":
     cbar.set_label('Initial-condition Temperature ({})'.format(axis_labels['xunits']), fontsize=fs)
     cbar.ax.tick_params(labelsize=fs)
     
-    ax3.legend(loc='upper left', bbox_to_anchor=(0.1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    ax3.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax3.set_xlabel(xlabel, fontsize=fs)
     ax3.set_ylabel(ylabel, fontsize=fs)
     ax3.tick_params(axis='both', which='major', labelsize=fs)
-    ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    if plot_orientation == 'wide':
+        ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    elif plot_orientation == 'long':
+        ax3.text(*label_rel_pos, '(e)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
 
     # Plot ax4 data
@@ -478,26 +490,44 @@ if __name__ == "__main__":
         
         ax4.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
         ax4.set_ylabel('Power Spectral Density', fontsize=fs)
-        ax4.text(*label_rel_pos, '(d)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
         ax4.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
         ax4.tick_params(axis='both', which='major', labelsize=fs)
         
         ax4.set_xlim((-0.00125, 0.0125)) # Comment/uncomment for xlimits
         ax4.set_ylim((-1*mean_psd, 25*mean_psd)) # Comment/uncomment for xlimits
         
+        if plot_orientation == 'wide':
+            ax4.text(*label_rel_pos, '(d)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+        elif plot_orientation == 'long':
+            ax4.text(*label_rel_pos, '(b)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+        
+
+        
         
     # Plot ax5 data
     #ax5.plot(ics, lowers, '-v', lw=lw, ms=ms, color='tab:blue',   label='Lower bound')
     #ax5.plot(ics, uppers, '-^', lw=lw, ms=ms, color='tab:red',    label='Upper bound')
-    ax5.plot(ics, bound_penetrations, '-o', lw=lw, ms=ms, color='tab:blue', label='Bound Penetrations')
-    ax5.plot(ics, uppers-lowers, '-s', lw=lw, ms=ms, color='tab:grey', label='Rubbery widths')
-    ax5.plot(ics, tgs,    '-p', lw=lw, ms=ms, color='tab:purple', label='Possible $T_g$s')
+    ax5.plot(ics, bound_penetrations, '-o', lw=lw, ms=ms, color='tab:blue', label='Bound Penetrations ({})'.format(axis_labels['xunits']))
+    ax5.plot(ics, uppers-lowers, '-s', lw=lw, ms=ms, color='tab:grey', label='Rubbery widths ({})'.format(axis_labels['xunits']))
+    ax5.plot(ics, tgs,    '-p', lw=lw, ms=ms, color='tab:purple', label='Possible $T_g$s ({})'.format(axis_labels['xunits']))
     
     ax5.set_xlabel('Initial-condition Temperature ({})'.format(axis_labels['xunits']), fontsize=fs, color='black')
     ax5.set_ylabel('Possible Rubbery states ({})'.format(axis_labels['xunits']), fontsize=fs, color='black')
     ax5.tick_params(axis='x', labelsize=fs, colors='black')
     ax5.tick_params(axis='y', labelsize=fs, colors='black')
-    ax5.text(*label_rel_pos, '(e)', transform=ax5.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    if plot_orientation == 'wide':
+        ax5.text(*label_rel_pos, '(e)', transform=ax5.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+    elif plot_orientation == 'long':
+        ax5.text(*label_rel_pos, '(d)', transform=ax5.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+        
+    all_ks  = np.concatenate([bound_penetrations, uppers-lowers, tgs])
+    min_ks  = min(all_ks)
+    max_ks  = max(all_ks)
+    tol_ks  = 50/100 # scale by 25%
+    span_ks = max_ks - min_ks
+    ylo = max([min_ks-tol_ks*span_ks, -5])
+    yhi = max_ks + tol_ks*span_ks
+    ax5.set_ylim((ylo, yhi))
     
     twin_color = 'tab:cyan'
     ax5_twin = ax5.twinx()
@@ -508,6 +538,14 @@ if __name__ == "__main__":
     
     handles, labels = ax5.get_legend_handles_labels()
     ax5_twin.legend(handles, labels, loc='upper left', bbox_to_anchor=(0.1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    
+    min_slopes = min(slopes)
+    max_slopes = max(slopes)
+    span_slopes = max_slopes - min_slopes
+    tol_slopes  = 10/100
+    ylo = min_slopes - tol_slopes*span_slopes
+    yhi = max_slopes + tol_slopes*span_slopes*4
+    ax5_twin.set_ylim((ylo, yhi))
     
     # Plot ax6 data
     if tg_kde is not None:
@@ -580,17 +618,20 @@ if __name__ == "__main__":
             ax6.plot(xlb, ylb, '|', ms=1.8*ms, color=base_color, alpha=base_alpha, zorder=6)
             ax6.plot(xrb, yrb, '|', ms=1.8*ms, color=base_color, alpha=base_alpha, zorder=6)
 
-        ax6.set_ylim(top=2.25*ymax)
+        ax6.set_ylim(top=2.3*ymax)
         ax6.axvline(selected_tg, color='black', ls='--', lw=lw, label='Selected Tg = {:.2f}'.format(selected_tg))
         
         ax6.legend(loc='upper left', bbox_to_anchor=(0.1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
         ax6.set_xlabel("Possible $T_g$s ({})".format(axis_labels['xunits']), fontsize=fs)
         ax6.set_ylabel('Estimated probabilty density', fontsize=fs)
         ax6.tick_params(axis='both', which='major', labelsize=fs)
-        ax6.text(*label_rel_pos, '(f)', transform=ax6.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+        if plot_orientation == 'wide':
+            ax6.text(*label_rel_pos, '(f)', transform=ax6.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+        elif plot_orientation == 'long':
+            ax6.text(*label_rel_pos, '(f)', transform=ax6.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
 
     
     fig.tight_layout()
     plt.show()
-    # basename = logfile[:logfile.rfind('.')]
-    # fig.savefig(basename+'.jpeg', dpi=300)
+    basename = logfile[:logfile.rfind('.')]
+    fig.savefig(basename+'.jpeg', dpi=300)
