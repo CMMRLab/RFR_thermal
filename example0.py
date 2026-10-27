@@ -484,9 +484,9 @@ if __name__ == "__main__":
         psd_color = 'tab:blue' #filter_color
         mean_color = '#ff9d3aff'
         wn_color = 'tab:green'
-        ax4.stem(wns, psd, linefmt=psd_color, basefmt=psd_color, markerfmt='.', label='$|X(f)|^2/N$')
-        ax4.plot(wn_critical, power, 'o', ms=8, color=wn_color , label='Cutoff frequency\n({:.4f}, {:.2f})'.format(wn_critical, power))
+        ax4.stem(wns, psd, linefmt=psd_color, basefmt=psd_color, markerfmt='o', label='$|X(f)|^2/N$')
         ax4.axhline(mean_psd, color=mean_color, ls='--', lw=2, label='Average power={:.2f}'.format(mean_psd))
+        ax4.plot(wn_critical, power, 'o', ms=8, color=wn_color , label='Cutoff frequency\n({:.4f}, {:.2f})'.format(wn_critical, power))
         
         ax4.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
         ax4.set_ylabel('Power Spectral Density', fontsize=fs)
@@ -500,9 +500,6 @@ if __name__ == "__main__":
             ax4.text(*label_rel_pos, '(d)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
         elif plot_orientation == 'long':
             ax4.text(*label_rel_pos, '(b)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
-        
-
-        
         
     # Plot ax5 data
     #ax5.plot(ics, lowers, '-v', lw=lw, ms=ms, color='tab:blue',   label='Lower bound')
