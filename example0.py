@@ -493,7 +493,7 @@ if __name__ == "__main__":
         ax4.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
         ax4.tick_params(axis='both', which='major', labelsize=fs)
         
-        ax4.set_xlim((-0.00125, 0.0125)) # Comment/uncomment for xlimits
+        ax4.set_xlim((-0.0013, 0.0125)) # Comment/uncomment for xlimits
         ax4.set_ylim((-1*mean_psd, 25*mean_psd)) # Comment/uncomment for xlimits
         
         if plot_orientation == 'wide':
