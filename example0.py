@@ -409,7 +409,7 @@ if __name__ == "__main__":
     if glassy_cte is not None and rubbery_cte is not None:
         title = 'Glassy-CTE   = {:.6e}\nRubbery-CTE= {:.6e}'.format(glassy_cte, rubbery_cte)
     else: title = 'Glassy-CTE  = {}\nRubbery-CTE= {}'.format(glassy_cte, rubbery_cte)
-    ax1.set_title(title, loc='left', x=0.05, y=0.8, pad=15, fontsize=fs)
+    ax1.set_title(title, loc='left', x=0.05, y=0.825, pad=15, fontsize=fs)
     
     
     # Plot ax2 data
