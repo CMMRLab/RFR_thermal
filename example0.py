@@ -475,12 +475,14 @@ if __name__ == "__main__":
         ax4.stem(wns, psd, linefmt=psd_color, basefmt=psd_color, markerfmt='.', label='$|X(f)|^2/N$')
         ax4.plot(wn_critical, power, 'o', ms=8, color=wn_color , label='Cutoff frequency\n({:.4f}, {:.2f})'.format(wn_critical, power))
         ax4.axhline(mean_psd, color=mean_color, ls='--', lw=2, label='Average power={:.2f}'.format(mean_psd))
+        
         ax4.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
         ax4.set_ylabel('Power Spectral Density', fontsize=fs)
         ax4.text(*label_rel_pos, '(d)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
         ax4.legend(loc='upper right', bbox_to_anchor=(1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
         ax4.tick_params(axis='both', which='major', labelsize=fs)
-        ax4.set_xlim((-0.001, 0.0125)) # Comment/uncomment for xlimits
+        
+        ax4.set_xlim((-0.00125, 0.0125)) # Comment/uncomment for xlimits
         ax4.set_ylim((-1*mean_psd, 25*mean_psd)) # Comment/uncomment for xlimits
         
         
