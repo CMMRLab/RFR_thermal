@@ -1,0 +1,6 @@
+# ignore python cache file
+*__pycache__/
+*.pyc
+
+# ignore quick gpush script
+gpush.sh
