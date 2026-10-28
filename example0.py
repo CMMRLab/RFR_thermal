@@ -185,8 +185,8 @@ max_tg = None
 # inspection. Examples:
 #   qm=msr
 #   qm=msr-p
+wn    = 'op'
 order = 2
-wn = 'op'
 quadrant_mirror = 'msr'
 
 
@@ -228,23 +228,19 @@ if __name__ == "__main__":
         
         # Compute the PSD for the shifted volume data
         wns, psd = signals.compute_PSD(temperature, shifted_volume)
-        
-        # Find the mean value of the different PSD's
         mean_psd = np.mean(psd)
         
         # Find where each PSD crosses the mean
-        wn_critical = wns[np.min(np.where(psd < mean_psd)[0])]
-        print('{:<50} {}'.format('Computed normalized cutoff frequency for volume: ', wn_critical))
+        wn_frequency = wns[np.min(np.where(psd < mean_psd)[0])]
+        wn_power = psd[np.min(np.where(wns == wn_frequency)[0])]
+        print('{:<50} {}'.format('Computed normalized cutoff frequency for volume: ', wn_frequency))
         
-        # Compute the corresponding power value for the crossing of the mean
-        power = psd[np.min(np.where(wns == wn_critical)[0])]
-    
         # Filter the data with an optimized wn value
-        filtered_volume, qm_volume = signals.butter_lowpass_filter(temperature, volume, wn_critical, order, quadrant_mirror)
+        filtered_volume, qm_volume = signals.butter_lowpass_filter(temperature, volume, wn_frequency, order, quadrant_mirror)
     else:
         # Filter the data with a user defined wn value
-        wn_critical = wn
-        filtered_volume, qm_volume = signals.butter_lowpass_filter(temperature, volume, wn_critical, order, quadrant_mirror)
+        wn_frequency = wn
+        filtered_volume, qm_volume = signals.butter_lowpass_filter(temperature, volume, wn_frequency, order, quadrant_mirror)
         
         
     #----------------------------------------------#
@@ -522,7 +518,7 @@ if __name__ == "__main__":
         wn_color = 'tab:green'
         ax4.stem(wns, psd, linefmt=psd_color, basefmt=psd_color, markerfmt='o', label='$|X(f)|^2/N$')
         ax4.axhline(mean_psd, color=mean_color, ls='--', lw=2, label='Average power={:.2f}'.format(mean_psd))
-        ax4.plot(wn_critical, power, 'o', ms=8, color=wn_color , label='Cutoff frequency\n({:.4f}, {:.2f})'.format(wn_critical, power))
+        ax4.plot(wn_frequency, wn_power, 'o', ms=8, color=wn_color , label='Cutoff frequency\n({:.4f}, {:.2f})'.format(wn_frequency, wn_power))
         
         ax4.set_xlabel('Normalized Frequencies (unitless)', fontsize=fs)
         ax4.set_ylabel('Power Spectral Density', fontsize=fs)
