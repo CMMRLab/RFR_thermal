@@ -18,34 +18,51 @@ Houghton, MI 49931
 ##############################
 # Import Necessary Libraries #
 ##############################
-from scipy.signal import find_peaks, peak_prominences
+from scipy.signal import find_peaks
 from scipy.stats import gaussian_kde
 import numpy as np
 
 
+
+
 # RFR compute
 def compute_fringe_slope_R2(x_data, y_data, min_x_data=None, max_x_data=None, direction='forward'):
-    """
-    Compute fringe slope vectorized
+    """Calculate cumulative linear-fit slopes and R-squared values.
 
-    out returns other internally computed values
+    Starting at the first data point in the requested direction, this function
+    calculates a least-squares linear fit for each growing data prefix. Results
+    are returned only for prefix endpoints whose x values lie within the
+    inclusive bounds and whose prefixes contain at least four points.
 
-    For more information read (and Cite)
-    https://doi.org/10.1038/s44172-026-00669-6
+    For the RFR method and its interpretation, see Kemppainen et al.,
+    https://doi.org/10.1038/s44172-026-00669-6.
 
-    :param x_data: Strain
-    :type x_data: Array1D
-    :param y_data: Stress
-    :type y_data: Array1D
-    :param min_x_data: Minimum x_data, defaults to None to use minimum index
-    :type min_x_data: Optional(Number)
-    :param max_x_data: Maximum x_data, defaults to None to use maximum index
-    :type max_x_data: Optional(Number)
-    :param direction: Direction, Must be 'forward' or 'backward', flips both vectors, defaults to 'forward'.
-    :type direction: str
+    Parameters
+    ----------
+    x_data : array-like
+        One-dimensional x coordinates, such as strain. Must have the same
+        length as ``y_data`` and be suitable for numeric NumPy operations.
+    y_data : array-like
+        One-dimensional response values, such as stress, aligned with
+        ``x_data``.
+    min_x_data : float or None, optional
+        Inclusive lower bound for returned prefix endpoints. Defaults to the
+        minimum value in ``x_data``.
+    max_x_data : float or None, optional
+        Inclusive upper bound for returned prefix endpoints. Defaults to the
+        maximum value in ``x_data``.
+    direction : {'forward', 'reverse', 'backward', True, False}, optional
+        Traversal direction. ``'forward'`` or ``True`` uses the input order;
+        ``'reverse'``, ``'backward'`` or ``False`` flips both arrays first.
 
-    :return: Fringe  X, slopes, and R2
-    :rtype: Tuple[np.ndarray, np.ndarray, np.ndarray]
+    Returns
+    -------
+    fringe : numpy.ndarray
+        X coordinate at the endpoint of each accepted cumulative fit.
+    slopes : numpy.ndarray
+        Least-squares slope for each accepted cumulative fit.
+    r2 : numpy.ndarray
+        Coefficient of determination for each accepted cumulative fit.
     """
     # Set direction
     if direction == 'forward' or direction is True:
@@ -92,6 +109,31 @@ def compute_fringe_slope_R2(x_data, y_data, min_x_data=None, max_x_data=None, di
 
 # Function to window data
 def window(x, y, xlo=None, xhi=None):
+    """Return paired samples whose x coordinates fall within a range.
+
+    The bounds are inclusive. Samples containing NaN in ``x`` are excluded
+    because comparisons with NaN are false.
+    
+    Parameters
+    ----------
+    x : numpy.ndarray
+        One-dimensional x-coordinate array.
+    y : numpy.ndarray
+        One-dimensional y-value array aligned with ``x``.
+    xlo : float or None, optional
+        Inclusive lower x bound. Defaults to the smallest non-NaN value in
+        ``x``.
+    xhi : float or None, optional
+        Inclusive upper x bound. Defaults to the largest non-NaN value in
+        ``x``.
+    
+    Returns
+    -------
+    win_x : numpy.ndarray
+        X values within the requested interval.
+    win_y : numpy.ndarray
+        Corresponding y values, selected using the same mask as ``win_x``.
+    """
     if xlo is None: xlo = np.nanmin(x)
     if xhi is None: xhi = np.nanmax(x)
     in_window = (x >= xlo) & (x <= xhi)  # NaN samples compare False -> dropped here
@@ -102,6 +144,45 @@ def window(x, y, xlo=None, xhi=None):
 
 # The RFR-mulit pass for finding linear region
 def rfr_multi_pass(x_data, y_data, sequence='FBF', min_span=0, ic=None):
+    """Search for linear-region bounds using alternating forward/backward passes.
+
+    Each pass calculates cumulative slopes and R-squared values with
+    :func:`compute_fringe_slope_R2`, then uses the endpoint with the largest
+    R-squared value as the next pass's initial condition. The returned bounds
+    are the sorted endpoints from the final two passes, or from the sole pass
+    and initial condition when only one pass is requested.
+
+    Parameters
+    ----------
+    x_data : array-like
+        One-dimensional x coordinates. Must be aligned with ``y_data``.
+    y_data : array-like
+        One-dimensional response values aligned with ``x_data``.
+    sequence : str, optional
+        Non-empty sequence of alternating pass directions: ``'F'`` for
+        forward and ``'B'`` for backward. For example, ``'FBF'`` or ``'BFB'``.
+    min_span : float, optional
+        Minimum x distance from the current initial condition excluded from
+        candidate fit endpoints. Defaults to zero.
+    ic : float or None, optional
+        Starting x coordinate. Defaults to the minimum x value when the
+        sequence starts with ``'F'`` or the maximum when it starts with ``'B'``.
+
+    Returns
+    -------
+    passes : list of dict
+        One entry per pass, containing ``'fringe'`` (candidate endpoints),
+        ``'r2'`` (their R-squared values), ``'max_fringe'`` (the selected
+        endpoint), and ``'max_r2'`` (its R-squared value).
+    bounds : numpy.ndarray, shape (2,)
+        Sorted x coordinates delimiting the selected region.
+
+    Raises
+    ------
+    ValueError
+        If ``sequence`` is empty, contains characters other than ``F``/``B``,
+        does not alternate directions, or a pass has no valid candidates.
+    """
     
     # Error checking
     sequence = sequence.upper()
@@ -164,14 +245,60 @@ def rfr_multi_pass(x_data, y_data, sequence='FBF', min_span=0, ic=None):
     
     return passes, np.array(bounds)
 
+
 # Compute a linear regression within bounds
 def linear_regression(x, y, xlo=None, xhi=None):
+    """Fit a first-degree polynomial to data within optional x bounds.
+
+    The fit is performed on samples selected by :func:`window` and uses
+    ``numpy.polynomial.polynomial.polyfit`` coefficient ordering.
+
+    Parameters
+    ----------
+    x : array-like
+        One-dimensional x coordinates.
+    y : array-like
+        One-dimensional y values aligned with ``x``.
+    xlo : float or None, optional
+        Inclusive lower x bound. Defaults to the minimum value in ``x``.
+    xhi : float or None, optional
+        Inclusive upper x bound. Defaults to the maximum value in ``x``.
+
+    Returns
+    -------
+    numpy.ndarray, shape (2,)
+        Linear-fit coefficients ``[intercept, slope]`` for
+        ``y = intercept + slope*x``.
+    """
     reduced_x, reduced_y = window(x, y, xlo=xlo, xhi=xhi)
     regression_coeffs = np.polynomial.polynomial.polyfit(reduced_x, reduced_y, 1) # [intercept, slope]
     return regression_coeffs
 
+
 # Compute the intersection between to regression coeffs
 def line_intersection(coeffs1, coeffs2):
+    """Calculate the intersection of two lines given polynomial coefficients.
+
+    Each line is represented in the coefficient order returned by
+    :func:`linear_regression`: ``[intercept, slope]``.
+
+    Parameters
+    ----------
+    coeffs1 : array-like, shape (2,)
+        ``[intercept, slope]`` coefficients for the first line.
+    coeffs2 : array-like, shape (2,)
+        ``[intercept, slope]`` coefficients for the second line.
+
+    Returns
+    -------
+    intersection : list of float
+        Coordinates ``[x, y]`` where the lines intersect. When the slopes are
+        equal, there is no unique intersection and these coordinates are not
+        meaningful.
+    does_intersect : bool
+        ``True`` when the slopes differ; ``False`` when the lines are parallel
+        or identical.
+    """
     b1, m1 = coeffs1
     b2, m2 = coeffs2
     does_intersect = True
@@ -184,19 +311,81 @@ def line_intersection(coeffs1, coeffs2):
 
     return [x_intersect, y_intersect], does_intersect
 
+
 # Compute the KDE and set Tg based on the selection method
 def compute_gaussian_kde(xdata, tgs, ic_increment, peak_index, weighting, slopes, widths, bound_weights, glassy_slope, kernel_width=None):
+    """Estimate a KDE of candidate Tg values and select a peak by probability.
+
+    A Gaussian KDE is evaluated on a temperature grid. The PDF is partitioned
+    at local minima between neighboring peaks, and each region's probability
+    is estimated by numerical integration. Peaks are ranked by decreasing
+    probability and ``peak_index`` selects the requested rank. Optional
+    weights can be supplied through a NumPy-compatible expression.
+
+    Parameters
+    ----------
+    xdata : array-like
+        Temperature data used to clamp the PDF evaluation grid to its minimum
+        and maximum values.
+    tgs : array-like
+        Candidate glass-transition temperatures, in kelvin, used to fit the
+        KDE. At least two distinct values are required for KDE evaluation.
+    ic_increment : float
+        IC-grid temperature increment, in kelvin. Used as the kernel width
+        when ``kernel_width`` is None.
+    peak_index : int
+        Zero-based rank of the peak to select after sorting by decreasing
+        integrated probability. Negative values use Python-style indexing.
+    weighting : str or None
+        Optional expression evaluated element-wise to produce one KDE weight
+        per candidate Tg. Available variables are ``rww`` (rubbery widths
+        normalized by their maximum), ``rsw`` (rubbery slopes divided by
+        ``glassy_slope``), ``bpw`` (bound weights), ``kw`` (effective kernel
+        width), and ``np`` (NumPy). For example, ``'0.5*rww + 0.5*rsw'``.
+        Use None for an unweighted KDE.
+    slopes : array-like
+        Candidate rubbery-region slopes used by the ``rsw`` weighting variable.
+    widths : array-like
+        Candidate rubbery-region widths used by the ``rww`` weighting variable.
+    bound_weights : array-like
+        Candidate bound-penetration weights, available as ``bpw`` in the
+        weighting expression.
+    glassy_slope : float
+        Glassy-region slope used to normalize ``slopes`` for ``rsw``.
+    kernel_width : float or None, optional
+        Effective Gaussian kernel width, in kelvin, defined as the
+        approximately ``±3σ`` span. Defaults to ``ic_increment``.
+
+    Returns
+    -------
+    tuple
+        ``(temp, tg_kde, tg_selection, xpeaks, ypeaks, peak_info,
+        selected_tg, kernel_effective_width)``. ``temp`` and ``tg_kde`` are
+        None when a KDE cannot be formed. ``tg_selection`` is always
+        ``'prob'``. ``xpeaks`` and ``ypeaks`` contain detected peak
+        temperatures and densities. ``peak_info`` is a list of dictionaries
+        with each peak's PDF index, temperature, density, integrated
+        probability, region bounds, selection status, label, and rank.
+        ``selected_tg`` is the selected Tg in kelvin (or a fallback value if
+        the KDE cannot be formed). ``kernel_effective_width`` is the width
+        used to determine the KDE bandwidth.
+
+    Raises
+    ------
+    IndexError
+        If ``peak_index`` is outside the available peak ranks.
+    """
+    # Over-ride default kernel widths
     if kernel_width is None:
         kernel_effective_width = ic_increment
     else:
         kernel_effective_width = kernel_width
-    tg_selection = 'prob'
 
     # A KDE requires at least two different Tg values.
     if len(tgs) < 2 or np.std(tgs, ddof=1) == 0:
         selected_tg = tgs[0] if len(tgs) else (max(xdata) + min(xdata)) / 2
         print('WARNING - not enough distinct Tg values to compute a Gaussian KDE.')
-        return (None, None, tg_selection, np.array([]), np.array([]), [],
+        return (None, None, np.array([]), np.array([]), [],
                 selected_tg, kernel_effective_width)
 
     # Convert the requested kernel width (approximately ±3σ) to gaussian_kde's
@@ -331,5 +520,5 @@ def compute_gaussian_kde(xdata, tgs, ic_increment, peak_index, weighting, slopes
             'label_rank': rank,
         })
 
-    return (temp, tg_kde, tg_selection, xpeaks, ypeaks, peak_info,
+    return (temp, tg_kde, xpeaks, ypeaks, peak_info,
             selected_tg, kernel_effective_width)

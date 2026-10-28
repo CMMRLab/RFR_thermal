@@ -88,11 +88,16 @@ plot_orientation = 'wide'
 
 
 weighting = 'bpw*rww*rsw'
+#weighting = None
+
 peak_index = 0
 min_span = 50
+
+
 min_tg = None
 max_tg = None
 
+min_tg = 350
 
 
 
@@ -107,7 +112,7 @@ max_tg = None
 # *NOTE if reading multiple sections from the log file and a column
 #  is missing in a certain section, the get_data function will create
 #  zeros.*
-sections = '4-end'
+sections = '4-end' # earlier section are setting up the temperature ramp
 
 
 # Filter settings
@@ -306,9 +311,9 @@ if __name__ == "__main__":
     # Compute the KDE
     try:
         outputs = rfr.compute_gaussian_kde(temperature, tgs, ic_increment, peak_index, weighting, slopes, widths, bound_weights, glassy_slope)
-        temp, tg_kde, tg_selection, xpeaks, ypeaks, peak_info, selected_tg, kernel_width = outputs
+        temp, tg_kde, xpeaks, ypeaks, peak_info, selected_tg, kernel_width = outputs
     except: # it is unlikely above will fail, but if it does set Tg at the center and warn the user
-        temp, tg_kde, tg_selection, xpeaks, ypeaks, peak_info = None, None, None, None, None, None
+        temp, tg_kde, xpeaks, ypeaks, peak_info = None, None, None, None, None
         selected_tg = (max(temperature) - min(temperature))/2
         print('WARNING - the generation of the PDF failed, setting the selected Tg value at the center of the X-data')
         
@@ -364,7 +369,6 @@ if __name__ == "__main__":
     glassy_color  = '#0097A7'
     rubbery_color = 'tab:red'
     
-    
     # Set axis label mapping (if not present code will default to LAMMPS column names)
     axis_labels = {} # {'Xdata-colum':'desired X-axis label', 'Ydata-colum':'desired Y-axis label'}
     axis_labels['xunits'] = 'K'
@@ -380,7 +384,7 @@ if __name__ == "__main__":
     if plot_orientation == 'wide':
         fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(3.5*plot_dim, 2*plot_dim))
     elif plot_orientation == 'long':
-        fig, ((ax1, ax4), (ax2, ax5), (ax3, ax6)) = plt.subplots(3, 2, figsize=(2.5*plot_dim, 3*plot_dim))
+        fig, ((ax1, ax4), (ax2, ax3), (ax5, ax6)) = plt.subplots(3, 2, figsize=(2.5*plot_dim, 3*plot_dim))
     else:
         raise Exception('ERROR plot_orientation="{}", but only "wide" and "long" are supported'.format(plot_orientation))
     
@@ -404,6 +408,15 @@ if __name__ == "__main__":
     ax1.tick_params(axis='both', which='major', labelsize=fs)
     ax1.text(*label_rel_pos, '(a)', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     
+    ax1.ticklabel_format(
+    axis='y',
+    style='sci',
+    scilimits=(5, 5),   # force a 10^6 multiplier
+    useOffset=False,
+    useMathText=False,  # displays "1e6"
+    )
+    ax1.yaxis.get_offset_text().set_fontsize(0.8*fs)
+    
     
     # Plot ax2 data
     ax2.plot(gf1['fringe'], gf1['r2'], '-', lw=lw, color=gf1['color'], label='Glassy: 1st pass (forward)')
@@ -420,7 +433,7 @@ if __name__ == "__main__":
     ax2.plot(rf1['max_fringe'], rf1['max_r2'], '<', ms=ms, mec=rf1['color'], mfc='white', mew=lw)#, label='max(2nd pass)')
     ax2.plot(rr2['max_fringe'], rr2['max_r2'], '>', ms=ms, mec=rr2['color'], mfc='white', mew=lw)#, label='max(3rd pass)')
     
-    ax2.legend(loc='lower left', bbox_to_anchor=(0, 0), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    ax2.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax2.set_xlabel(xlabel, fontsize=fs)
     ax2.set_ylabel('$R^2$', fontsize=fs)
     ax2.tick_params(axis='both', which='major', labelsize=fs)
@@ -432,12 +445,11 @@ if __name__ == "__main__":
     all_r2  = np.concatenate([gf1['r2'], gr1['r2'],  gf2['r2'], rr1['r2'], rf1['r2'], rr2['r2']])
     min_r2  = min(all_r2)
     max_r2  = max(all_r2)
-    tol_r2  = 10/100 # scale by 10%
+    tol_r2  = 25/100 # scale by 10%
     span_r2 = max_r2 - min_r2
-    ylo = min_r2 - tol_r2*span_r2
+    ylo = min_r2 - tol_r2*span_r2*3.5
     yhi = max_r2 + tol_r2*span_r2
     ax2.set_ylim((ylo, yhi))
-    
     
     
     # Plot ax3 data
@@ -470,8 +482,17 @@ if __name__ == "__main__":
     if plot_orientation == 'wide':
         ax3.text(*label_rel_pos, '(c)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
     elif plot_orientation == 'long':
-        ax3.text(*label_rel_pos, '(e)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
-    
+        ax3.text(*label_rel_pos, '(d)', transform=ax3.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+        
+    ax3.ticklabel_format(
+    axis='y',
+    style='sci',
+    scilimits=(5, 5),   # force a 10^6 multiplier
+    useOffset=False,
+    useMathText=False,  # displays "1e6"
+    )
+    ax3.yaxis.get_offset_text().set_fontsize(0.8*fs)
+
 
     # Plot ax4 data
     if str(wn).startswith('op'):
@@ -495,6 +516,7 @@ if __name__ == "__main__":
         elif plot_orientation == 'long':
             ax4.text(*label_rel_pos, '(b)', transform=ax4.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
         
+        
     # Plot ax5 data
     #ax5.plot(ics, lowers, '-v', lw=lw, ms=ms, color='tab:blue',   label='Lower bound')
     #ax5.plot(ics, uppers, '-^', lw=lw, ms=ms, color='tab:red',    label='Upper bound')
@@ -507,17 +529,13 @@ if __name__ == "__main__":
     ax5.set_ylabel('Possible Rubbery states ({})'.format(axis_labels['xunits']), fontsize=fs, color='black')
     ax5.tick_params(axis='x', labelsize=fs, colors='black')
     ax5.tick_params(axis='y', labelsize=fs, colors='black')
-    if plot_orientation == 'wide':
-        ax5.text(*label_rel_pos, '(e)', transform=ax5.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
-    elif plot_orientation == 'long':
-        ax5.text(*label_rel_pos, '(d)', transform=ax5.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
-        
+
     all_ks  = np.concatenate([bound_penetrations, uppers-lowers, tgs])
     min_ks  = min(all_ks)
     max_ks  = max(all_ks)
-    tol_ks  = 50/100 # scale by 25%
+    tol_ks  = 55/100
     span_ks = max_ks - min_ks
-    ylo = max([min_ks-tol_ks*span_ks, -5])
+    ylo = max([min_ks-tol_ks*span_ks, -10])
     yhi = max_ks + tol_ks*span_ks
     ax5.set_ylim((ylo, yhi))
     
@@ -528,16 +546,24 @@ if __name__ == "__main__":
         fontsize=fs, color=twin_color)
     ax5_twin.tick_params(axis='y', labelsize=fs, colors=twin_color)
     
-    handles, labels = ax5.get_legend_handles_labels()
-    ax5_twin.legend(handles, labels, loc='upper left', bbox_to_anchor=(0.1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    if plot_orientation == 'wide':
+        ax5.text(*label_rel_pos, '(e)', transform=ax5.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+        handles, labels = ax5.get_legend_handles_labels()
+        ax5_twin.legend(handles, labels, loc='upper left', bbox_to_anchor=(0.1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+        
+    elif plot_orientation == 'long':
+        ax5.text(*label_rel_pos, '(e)', transform=ax5.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
+        handles, labels = ax5.get_legend_handles_labels()
+        ax5_twin.legend(handles, labels, loc='upper left', bbox_to_anchor=(0.075, 1), fancybox=True, ncol=2, fontsize=legend_fs_scale*fs*0.95)
     
     min_slopes = min(slopes)
     max_slopes = max(slopes)
     span_slopes = max_slopes - min_slopes
     tol_slopes  = 10/100
     ylo = min_slopes - tol_slopes*span_slopes
-    yhi = max_slopes + tol_slopes*span_slopes*4
+    yhi = max_slopes + tol_slopes*span_slopes*4.5
     ax5_twin.set_ylim((ylo, yhi))
+    
     
     # Plot ax6 data
     if tg_kde is not None:
@@ -564,15 +590,14 @@ if __name__ == "__main__":
             if label_rank > max_labeled_peak and not info['selected']:
                 continue
             
+            # Alternate small left/right x-offsets
             xt = info['temp']
             yd = info['density']
-            
-            # Alternate small left/right x-offsets
             dx = (-1)**n * 0.05*xrange
             xtxt = xt + dx
 
             # Alternate between two label heights
-            ytext = ytext_hi if n % 3 == 0 else ytext_lo
+            ytext = ytext_hi if n % 2 == 0 else ytext_lo
             if info['selected']:
                 bbox = dict(boxstyle='round,pad=0.25', fc='white', ec='black', lw=1.2)
                 arrow_color = 'black'
@@ -622,7 +647,6 @@ if __name__ == "__main__":
         elif plot_orientation == 'long':
             ax6.text(*label_rel_pos, '(f)', transform=ax6.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
 
-    
     fig.tight_layout()
     plt.show()
     basename = logfile[:logfile.rfind('.')]
