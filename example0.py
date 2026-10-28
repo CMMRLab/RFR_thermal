@@ -74,32 +74,11 @@ plt.rcParams.update({
 
 
 
-##########
-# Inputs #
-##########
+###############
+# Data Inputs #
+###############
 # logfile to read in
 logfile = 'logfiles/heating1/iso/EPON_862_rep_1_Tg_CTE_hrate_75_temps_175-875K.log.lammps'
-
-# Plot orientation setup for different reasons. Here are the following options
-#   plot_orientation = 'long' # makes plot long vertically (good for papers)
-#   plot_orientation = 'wide' # makes plot wide vertically (good for presentations)
-plot_orientation = 'long'
-plot_orientation = 'wide'
-
-
-weighting = 'bpw*rww*rsw'
-#weighting = None
-
-peak_index = 0
-min_span = 50
-
-
-min_tg = None
-max_tg = None
-
-min_tg = 350
-
-
 
 # Set the sections of the logfile to get data from. Sections are counted
 # starting from 1 and end at N-sections. The following options are available
@@ -114,7 +93,49 @@ min_tg = 350
 #  zeros.*
 sections = '4-end' # earlier section are setting up the temperature ramp
 
+# Plot orientation setup for different reasons. Here are the following options
+#   plot_orientation = 'long' # makes plot long vertically (good for papers)
+#   plot_orientation = 'wide' # makes plot wide vertically (good for presentations)
+plot_orientation = 'long'
+plot_orientation = 'wide'
 
+
+######################
+# RFR-thermal inputs #
+######################
+# KDE weighting expression. Available variables are:
+#   bpw = bound-penetration weight
+#   rww = normalized rubbery-region width weight
+#   rsw = rubbery-region slope divided by the glassy-region slope
+#   kw  = effective KDE kernel width
+# Combine these variables with NumPy-compatible operations to weight each Tg
+# candidate. Set weighting=None to compute an unweighted KDE.
+weighting = None
+weighting = 'bpw*rww*rsw'
+
+# Select a peak after sorting PDF peak regions by decreasing integrated
+# probability: 0 selects the most probable region, 1 the next most probable,
+# and negative values use Python-style indexing.
+peak_index = 0
+
+# Minimum temperature span used when searching for candidate linear regions,
+# in the same units as the temperature data. The IC-grid increment is set to
+# half this value below.
+min_span = 50
+
+# Optional Tg limits, in the same units as the temperature data. Candidate Tg
+# values outside these inclusive limits are skipped. Use None to disable a
+# limit. The None assignment is shown as an example; the active lower limit is
+# set to 350 below.
+# min_tg = None
+min_tg = 350
+min_tg = None
+max_tg = None
+
+
+####################
+# Filtering inputs #
+####################
 # Filter settings
 # order=<int>, where <int> is the order of the low pass Butterworth filter. Examples:
 #   order=2
@@ -192,6 +213,7 @@ if __name__ == "__main__":
     data = log.get_data(sections, remove_duplicates=True, pflag=False) # {column-name:[list of data]}
     volume      = np.array(data[volume_column])
     temperature = np.array(data[temperature_column])
+    
     
     #------------------------#
     # Filter the volume data #
@@ -332,6 +354,7 @@ if __name__ == "__main__":
     rubbery_coeffs = rfr.linear_regression(temperature, filtered_volume, xlo=min(rubbery_bounds), xhi=max(rubbery_bounds))
     rubbery_volume = rubbery_coeffs[1]*rubbery_bounds + rubbery_coeffs[0] # rubbery volume data from rubbery bounds (for plotting)
     
+    
     #--------------------------------#
     # Compute the thermal properties #
     #--------------------------------#
@@ -347,8 +370,6 @@ if __name__ == "__main__":
     vol_avg     = np.mean(reduced_y)
     glassy_cte  = (1/(3*vol_avg))*glassy_coeffs[1]
     rubbery_cte = (1/(3*vol_avg))*rubbery_coeffs[1]
-    
-    
     
     
     #---------------------------------#
