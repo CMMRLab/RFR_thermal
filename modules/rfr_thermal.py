@@ -191,14 +191,13 @@ def compute_gaussian_kde(xdata, tgs, ic_increment, peak_index, weighting, slopes
     else:
         kernel_effective_width = kernel_width
     tg_selection = 'prob'
-    selected_label = ''
 
     # A KDE requires at least two different Tg values.
     if len(tgs) < 2 or np.std(tgs, ddof=1) == 0:
         selected_tg = tgs[0] if len(tgs) else (max(xdata) + min(xdata)) / 2
         print('WARNING - not enough distinct Tg values to compute a Gaussian KDE.')
         return (None, None, tg_selection, np.array([]), np.array([]), [],
-                selected_tg, selected_label, kernel_effective_width)
+                selected_tg, kernel_effective_width)
 
     # Convert the requested kernel width (approximately ±3σ) to gaussian_kde's
     # bandwidth scaling factor.
@@ -208,7 +207,7 @@ def compute_gaussian_kde(xdata, tgs, ic_increment, peak_index, weighting, slopes
 
     # Build the PDF evaluation grid, clamped to the xdata range.
     xmin, xmax = min(tgs), max(tgs)
-    padding = max(0.05 * (xmax - xmin), 4 * kernel_std)
+    padding = max(0.05*(xmax - xmin), 4*kernel_std)
     xmin_pdf = max(min(xdata), xmin - padding)
     xmax_pdf = min(max(xdata), xmax + padding)
 
@@ -218,41 +217,35 @@ def compute_gaussian_kde(xdata, tgs, ic_increment, peak_index, weighting, slopes
     # Compute optional weights for the Gaussian KDE. The user may supply an
     # arbitrary NumPy-compatible mathematical expression through:
     #
-    #     weights = "<expression>"
+    #     weighting = "<expression>"
     #
     # where the expression is evaluated element-wise and must return one weight
     # per candidate Tg. The following variables are available:
     #
-    #   rw : Normalized rubbery-region width
-    #        rw = widths / max(widths)
-    #
-    #   rs : Rubbery-region slope normalized by the glassy slope
-    #        rs = ctes / glassy_slope
-    #
-    # Supported NumPy functions are available through the np namespace.
+    #  rww = rubbery width weight. Normalized to one (divided by maximum width)
+    #  rsw = rubbery slope weight. Divided by glassy slope
+    #  bpw = bound penetration weight.
     #
     # Example expressions:
     #
-    #     weights = "rw"
-    #     weights = "rs"
-    #     weights = "0.5*rw + 0.5*rs"
-    #     weights = "rw**2"
-    #     weights = "np.sqrt(rw)"
-    #     weights = "np.exp(-rs)"
+    #     weights = "rww"
+    #     weights = "rsw"
+    #     weights = "0.5*rww + 0.5*rsw"
+    #     weights = "rww**2"
+    #     weights = "np.sqrt(rww)"
+    #     weights = "np.exp(-rsw)"
     weights = None
     if weighting is not None:
         # Compute possible weighting options, where the following are supported
-        #  rw = rubbery width normalized to one (divided by maximum width)
-        #  rs = rubbery slope divided by glassy slope
-        rw = widths/max(widths)   # Set width-weights via a normalized width of regions
-        rs = slopes/glassy_slope  # Set slope-weights via a normalized cte relative to glassy slope
-        bw = bound_weights        # Set bound penalty where no-penetration=1 and larger-penetraions approach zero
+        rww = widths/max(widths)   # Set width-weights via a normalized width of regions
+        rsw = slopes/glassy_slope  # Set slope-weights via a normalized cte relative to glassy slope
+        bpw = bound_weights        # Set bound penalty where no-penetration=1 and larger-penetraions approach zero
         kw = kernel_effective_width # Set scalar value for kernel width
         
         # Setup the globals namespace to limit scope of what eval() can do
         allowed_builtins = ['min','max','sum','abs','len','map','range','reversed']
         copied_builtins = globals()['__builtins__'].copy()
-        globals_dict = {'rw':rw, 'rs':rs, 'kw': kw, 'bw':bw}
+        globals_dict = {'rww':rww, 'rsw':rsw, 'bpw':bpw, 'kw': kw}
         globals_dict['__builtins__'] = {key:copied_builtins[key] for key in allowed_builtins}
         globals_dict['np'] = globals()['np']
 
@@ -264,12 +257,11 @@ def compute_gaussian_kde(xdata, tgs, ic_increment, peak_index, weighting, slopes
             weights = np.nan_to_num(weights, nan=1.0) # set Nan's to 1.0
             
             # If all weights evaluate to zero reset weights to ones (this is
-            # useful to shut-off weighting with zeros like "0.0*rw + 0.0*rs",
+            # useful to shut-off weighting with zeros like "0.0*rww + 0.0*rsw",
             # but still keep the syntax for setting weights for testing)
             weight_set = set(weights)
             if len(weight_set) == 1 and sum(weight_set) == 0:
                 weights = np.ones_like(weights)
-                print(weights)
             
             if weights.ndim != 1:
                 raise ValueError("weights expression must return a 1-D array")
@@ -277,7 +269,6 @@ def compute_gaussian_kde(xdata, tgs, ic_increment, peak_index, weighting, slopes
                 raise ValueError("weights expression returned the wrong length")
             if np.any(weights < 0):
                 raise ValueError("weights must be non-negative")
-                
             print('Successfully evaluated weighting compute = "{}"'.format(weighting))
         except:
             print('Failed to evaulate weighting compute = "{}". Using weights=None'.format(weighting))
@@ -291,13 +282,11 @@ def compute_gaussian_kde(xdata, tgs, ic_increment, peak_index, weighting, slopes
     if len(peaks) == 0:
         peaks = np.array([np.argmax(tg_kde)])
 
+    # Partition the PDF at the local minima between neighboring peaks.
     xpeaks = temp[peaks]
     ypeaks = tg_kde[peaks]
-
-    # Partition the PDF at the local minima between neighboring peaks.
     left_bases = np.zeros(len(peaks), dtype=int)
     right_bases = np.zeros(len(peaks), dtype=int)
-
     for i, peak in enumerate(peaks):
         if i == 0:
             left_bases[i] = 0
@@ -319,14 +308,12 @@ def compute_gaussian_kde(xdata, tgs, ic_increment, peak_index, weighting, slopes
 
     # Rank peaks by decreasing probability and select the requested rank.
     ranked_indices = np.argsort(peak_prob)[::-1]
-
     if not -len(ranked_indices) <= peak_index < len(ranked_indices):
         raise IndexError(f'peak_index={peak_index} is out of range for {len(ranked_indices)} peaks.')
 
     selected_rank = peak_index % len(ranked_indices)
     selected_peak_index = ranked_indices[selected_rank]
     selected_tg = xpeaks[selected_peak_index]
-    selected_label = f'PDF(prob,{peak_index})'
 
     peak_info = []
     for rank, peak_idx in enumerate(ranked_indices):
@@ -345,4 +332,4 @@ def compute_gaussian_kde(xdata, tgs, ic_increment, peak_index, weighting, slopes
         })
 
     return (temp, tg_kde, tg_selection, xpeaks, ypeaks, peak_info,
-            selected_tg, selected_label, kernel_effective_width)
+            selected_tg, kernel_effective_width)

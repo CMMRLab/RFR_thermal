@@ -87,7 +87,7 @@ plot_orientation = 'long'
 plot_orientation = 'wide'
 
 
-weighting = 'bw*rw*rs'
+weighting = 'bpw*rww*rsw'
 peak_index = 0
 min_span = 50
 min_tg = None
@@ -306,11 +306,10 @@ if __name__ == "__main__":
     # Compute the KDE
     try:
         outputs = rfr.compute_gaussian_kde(temperature, tgs, ic_increment, peak_index, weighting, slopes, widths, bound_weights, glassy_slope)
-        temp, tg_kde, tg_selection, xpeaks, ypeaks, peak_info, selected_tg, selected_label, kernel_width = outputs
+        temp, tg_kde, tg_selection, xpeaks, ypeaks, peak_info, selected_tg, kernel_width = outputs
     except: # it is unlikely above will fail, but if it does set Tg at the center and warn the user
         temp, tg_kde, tg_selection, xpeaks, ypeaks, peak_info = None, None, None, None, None, None
         selected_tg = (max(temperature) - min(temperature))/2
-        selected_label = ''
         print('WARNING - the generation of the PDF failed, setting the selected Tg value at the center of the X-data')
         
     # Go and find closests Tg in guesses (we will update based on widest in group if possible)
@@ -351,7 +350,7 @@ if __name__ == "__main__":
     # Plot the results of this method #
     #---------------------------------#
     # General plot settings
-    fs = 13   # Set fontsize
+    fs = 12   # Set fontsize
     ms = 6.0  # General marker size (there maybe scaling of these in the plotting code)
     lw = 2.5  # General line-width (there maybe scaling of these in the plotting code)
     plot_dim = 4 # Sub-figure dimensions
@@ -390,8 +389,8 @@ if __name__ == "__main__":
     ax1.plot(temperature, volume,          '.', ms=ms, color=raw_color,    label='LAMMPS data')
     ax1.plot(temperature, filtered_volume, '-', lw=lw, color=filter_color, label='Filtered data')
     
-    ax1.plot(glassy_bounds, glassy_volume,    marker='|', ls='--', ms=2*ms, lw=lw, color=glassy_color,  label='Glassy region')
-    ax1.plot(rubbery_bounds, rubbery_volume,  marker='|', ls='--', ms=2*ms, lw=lw, color=rubbery_color, label='Rubbery region')
+    ax1.plot(glassy_bounds, glassy_volume,    marker='|', ls='--', ms=2*ms, lw=lw, color=glassy_color,  label='Glassy region\n * CTE={:.2e}'.format(glassy_cte))
+    ax1.plot(rubbery_bounds, rubbery_volume,  marker='|', ls='--', ms=2*ms, lw=lw, color=rubbery_color, label='Rubbery region\n * CTE={:.2e}'.format(rubbery_cte))
     
     # Generate "v-connecting lines"
     vx = [glassy_bounds[-1], tg[0], rubbery_bounds[0]]
@@ -404,11 +403,6 @@ if __name__ == "__main__":
     ax1.set_ylabel(ylabel, fontsize=fs)
     ax1.tick_params(axis='both', which='major', labelsize=fs)
     ax1.text(*label_rel_pos, '(a)', transform=ax1.transAxes, fontsize=fs, fontweight='bold', va='top', ha='left')
-    
-    if glassy_cte is not None and rubbery_cte is not None:
-        title = 'Glassy-CTE   = {:.6e}\nRubbery-CTE= {:.6e}'.format(glassy_cte, rubbery_cte)
-    else: title = 'Glassy-CTE  = {}\nRubbery-CTE= {}'.format(glassy_cte, rubbery_cte)
-    ax1.set_title(title, loc='left', x=0.1, y=0.78, pad=15, fontsize=fs)
     
     
     # Plot ax2 data
@@ -507,6 +501,7 @@ if __name__ == "__main__":
     ax5.plot(ics, bound_penetrations, '-o', lw=lw, ms=ms, color='tab:blue', label='Bound Penetrations ({})'.format(axis_labels['xunits']))
     ax5.plot(ics, uppers-lowers, '-s', lw=lw, ms=ms, color='tab:grey', label='Rubbery widths ({})'.format(axis_labels['xunits']))
     ax5.plot(ics, tgs,    '-p', lw=lw, ms=ms, color='tab:purple', label='Possible $T_g$s ({})'.format(axis_labels['xunits']))
+    ax5.axhline(selected_tg, color='black', ls='--', lw=lw, zorder=0.5, label='Selected Tg = {:.2f}'.format(selected_tg))
     
     ax5.set_xlabel('Initial-condition Temperature ({})'.format(axis_labels['xunits']), fontsize=fs, color='black')
     ax5.set_ylabel('Possible Rubbery states ({})'.format(axis_labels['xunits']), fontsize=fs, color='black')
