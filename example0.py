@@ -2,7 +2,7 @@
 """
 @author: Josh Kemppainen
 Revision 1.0
-March 24, 2025
+October 28, 2025
 Michigan Technological University
 1400 Townsend Dr.
 Houghton, MI 49931
@@ -407,6 +407,7 @@ if __name__ == "__main__":
     
     
     # Plot ax1 data
+    #--------------
     ax1.plot(temperature, volume,          '.', ms=ms, color=raw_color,    label='LAMMPS data')
     ax1.plot(temperature, filtered_volume, '-', lw=lw, color=filter_color, label='Filtered data')
     
@@ -428,14 +429,15 @@ if __name__ == "__main__":
     ax1.ticklabel_format(
     axis='y',
     style='sci',
-    scilimits=(5, 5),   # force a 10^6 multiplier
+    scilimits=(5, 5),   # force a 10^5 multiplier
     useOffset=False,
-    useMathText=False,  # displays "1e6"
+    useMathText=False,  # displays "1e5"
     )
     ax1.yaxis.get_offset_text().set_fontsize(0.8*fs)
     
     
     # Plot ax2 data
+    #--------------
     ax2.plot(gf1['fringe'], gf1['r2'], '-', lw=lw, color=gf1['color'], label='Glassy: 1st pass (forward)')
     ax2.plot(gr1['fringe'], gr1['r2'], '-', lw=lw, color=gr1['color'], label='Glassy: 2nd pass (backward)')
     ax2.plot(gf2['fringe'], gf2['r2'], '-', lw=lw, color=gf2['color'], label='Glassy: 3rd pass (forward)')
@@ -470,6 +472,7 @@ if __name__ == "__main__":
     
     
     # Plot ax3 data
+    #--------------
     norm = mpl.colors.Normalize(vmin=min(ic_list), vmax=max(ic_list))
     cmap = plt.cm.coolwarm  # blue -> red
     zorders = []
@@ -504,14 +507,15 @@ if __name__ == "__main__":
     ax3.ticklabel_format(
     axis='y',
     style='sci',
-    scilimits=(5, 5),   # force a 10^6 multiplier
+    scilimits=(5, 5),   # force a 10^5 multiplier
     useOffset=False,
-    useMathText=False,  # displays "1e6"
+    useMathText=False,  # displays "1e5"
     )
     ax3.yaxis.get_offset_text().set_fontsize(0.8*fs)
 
 
     # Plot ax4 data
+    #--------------
     if str(wn).startswith('op'):
         psd_color = 'tab:blue' #filter_color
         mean_color = '#ff9d3aff'
@@ -535,6 +539,7 @@ if __name__ == "__main__":
         
         
     # Plot ax5 data
+    #--------------
     #ax5.plot(ics, lowers, '-v', lw=lw, ms=ms, color='tab:blue',   label='Lower bound')
     #ax5.plot(ics, uppers, '-^', lw=lw, ms=ms, color='tab:red',    label='Upper bound')
     ax5.plot(ics, bound_penetrations, '-o', lw=lw, ms=ms, color='tab:blue', label='Bound Penetrations ({})'.format(axis_labels['xunits']))
@@ -583,6 +588,7 @@ if __name__ == "__main__":
     
     
     # Plot ax6 data
+    #--------------
     if tg_kde is not None:
         # Ensure this is the largest dx-span in data to reduce number of points in plots for speed of rendering
         plot_dx = 0.5
@@ -667,4 +673,5 @@ if __name__ == "__main__":
     fig.tight_layout()
     plt.show()
     basename = logfile[:logfile.rfind('.')]
-    fig.savefig(basename+'.jpeg', dpi=300)
+    figname  = '{}_{}.jpeg'.format(basename, plot_orientation)
+    fig.savefig(figname, dpi=300)

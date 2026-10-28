@@ -2,7 +2,7 @@
 """
 @author: Josh Kemppainen
 Revision 1.0
-March 24, 2025
+October 28, 2025
 Michigan Technological University
 1400 Townsend Dr.
 Houghton, MI 49931
@@ -304,10 +304,11 @@ def line_intersection(coeffs1, coeffs2):
     does_intersect = True
     if m1 == m2:
         does_intersect = False
-        #raise ValueError("The lines are parallel or identical; no unique intersection.")
-
-    x_intersect = (b2 - b1) / (m1 - m2)
-    y_intersect = b1 + m1 * x_intersect
+        x_intersect = 0
+        y_intersect = 0
+    else:
+        x_intersect = (b2 - b1) / (m1 - m2)
+        y_intersect = b1 + m1 * x_intersect
 
     return [x_intersect, y_intersect], does_intersect
 
@@ -359,12 +360,11 @@ def compute_gaussian_kde(xdata, tgs, ic_increment, peak_index, weighting, slopes
     Returns
     -------
     tuple
-        ``(temp, tg_kde, tg_selection, xpeaks, ypeaks, peak_info,
+        ``(temp, tg_kde, xpeaks, ypeaks, peak_info,
         selected_tg, kernel_effective_width)``. ``temp`` and ``tg_kde`` are
-        None when a KDE cannot be formed. ``tg_selection`` is always
-        ``'prob'``. ``xpeaks`` and ``ypeaks`` contain detected peak
-        temperatures and densities. ``peak_info`` is a list of dictionaries
-        with each peak's PDF index, temperature, density, integrated
+        None when a KDE cannot be formed. ``xpeaks`` and ``ypeaks`` contain
+        detected peak temperatures and densities. ``peak_info`` is a list of
+        dictionaries with each peak's PDF index, temperature, density, integrated
         probability, region bounds, selection status, label, and rank.
         ``selected_tg`` is the selected Tg in kelvin (or a fallback value if
         the KDE cannot be formed). ``kernel_effective_width`` is the width
