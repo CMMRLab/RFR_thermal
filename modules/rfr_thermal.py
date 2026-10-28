@@ -522,3 +522,7 @@ def compute_gaussian_kde(xdata, tgs, ic_increment, peak_index, weighting, slopes
 
     return (temp, tg_kde, xpeaks, ypeaks, peak_info,
             selected_tg, kernel_effective_width)
+
+# Full stand alone RFR-thermal implementation
+def full_rfr_thermal():
+    return

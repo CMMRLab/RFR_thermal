@@ -78,7 +78,18 @@ plt.rcParams.update({
 # Data Inputs #
 ###############
 # logfile to read in
-logfile = 'logfiles/heating1/iso/EPON_862_rep_1_Tg_CTE_hrate_75_temps_175-875K.log.lammps'
+logfile = 'logfiles/heating1/iso/L10_rep_2_Tg_CTE_hrate_75_temps_175-875K.log.lammps'
+logfile = 'logfiles/heating1/iso/L10_rep_3_Tg_CTE_hrate_75_temps_175-875K.log.lammps'
+logfile = 'logfiles/heating1/aniso/L10_rep_1_Tg_CTE_hrate_75_temps_175-875K.log.lammps'
+
+# moved index
+logfile = 'logfiles/heating2/iso/L10_rep_1_Tg_CTE_hrate_75_temps_175-875K.log.lammps'
+logfile = 'logfiles/heating2/iso/L10_rep_2_Tg_CTE_hrate_75_temps_175-875K.log.lammps'
+#logfile = 'logfiles/heating2/iso/L10_rep_3_Tg_CTE_hrate_75_temps_175-875K.log.lammps'
+
+#logfile = 'logfiles/cooling1/aniso/L10_rep_1_Tg_CTE_trate_75_temps_875-175K.log.lammps'
+#logfile = 'logfiles/cooling1/iso/L10_rep_1_Tg_CTE_trate_75_temps_875-175K.log.lammps'
+
 
 # Set the sections of the logfile to get data from. Sections are counted
 # starting from 1 and end at N-sections. The following options are available
@@ -97,7 +108,7 @@ sections = '4-end' # earlier section are setting up the temperature ramp
 #   plot_orientation = 'long' # makes plot long vertically (good for papers)
 #   plot_orientation = 'wide' # makes plot wide vertically (good for presentations)
 plot_orientation = 'long'
-plot_orientation = 'wide'
+#plot_orientation = 'wide'
 
 
 ######################
@@ -207,11 +218,21 @@ if __name__ == "__main__":
     #-------------------------------------------#
     # Read logfile and get numpy arrays of data #
     #-------------------------------------------#
+    # Read logfile
     keywords = [volume_column,temperature_column]
     log = read_log.file(logfile, keywords=keywords, pflag=False)
     data = log.get_data(sections, remove_duplicates=True, pflag=False) # {column-name:[list of data]}
-    volume      = np.array(data[volume_column])
-    temperature = np.array(data[temperature_column])
+    
+    # For cooling we need to reverse the lists
+    volume      = data[volume_column]
+    temperature = data[temperature_column]
+    if temperature[-1] < temperature[0]:
+        volume.reverse()
+        temperature.reverse()
+    
+    # We will be using NumPy, thus convert to NumPy
+    volume      = np.array(volume)
+    temperature = np.array(temperature)
     
     
     #------------------------#
@@ -419,7 +440,7 @@ if __name__ == "__main__":
     ax1.plot(vx, vy, '--', lw=lw/2, color='black')
     ax1.plot(*tg, 'p', ms=2*ms, color=tg_color, mec='black', mew=1.2, label='$T_g$ ({:.2f})'.format(tg[0]))
     
-    ax1.legend(loc='lower right', bbox_to_anchor=(1, 0), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
+    ax1.legend(loc='upper left', bbox_to_anchor=(0.1, 1), fancybox=True, ncol=1, fontsize=legend_fs_scale*fs)
     ax1.set_xlabel(xlabel, fontsize=fs)
     ax1.set_ylabel(ylabel, fontsize=fs)
     ax1.tick_params(axis='both', which='major', labelsize=fs)
@@ -465,7 +486,7 @@ if __name__ == "__main__":
     max_r2  = max(all_r2)
     tol_r2  = 25/100 # scale by 10%
     span_r2 = max_r2 - min_r2
-    ylo = min_r2 - tol_r2*span_r2*3.5
+    ylo = min_r2 - tol_r2*span_r2*4.5
     yhi = max_r2 + tol_r2*span_r2
     ax2.set_ylim((ylo, yhi))
     
@@ -605,7 +626,7 @@ if __name__ == "__main__":
         ymax = max(tg_kde)
         xrange = max(temp) - min(temp)
         ytext_hi = 1.40*ymax
-        ytext_lo = 1.20*ymax
+        ytext_lo = 1.10*ymax
         max_labeled_peak = 3
         for n, info in enumerate(peak_info):
             label_rank = info.get('label_rank', n)
@@ -650,8 +671,8 @@ if __name__ == "__main__":
             xrb = temp[rb]
             ylb = tg_kde[lb]
             yrb = tg_kde[rb]
-            ax6.axvline(xlb, color=base_color, ls=':', lw=base_lw, alpha=base_alpha, zorder=3)
-            ax6.axvline(xrb, color=base_color, ls=':', lw=base_lw, alpha=base_alpha, zorder=3)
+            #ax6.axvline(xlb, color=base_color, ls=':', lw=base_lw, alpha=base_alpha, zorder=3)
+            #ax6.axvline(xrb, color=base_color, ls=':', lw=base_lw, alpha=base_alpha, zorder=3)
 
             ax6.fill_between(temp[lb:rb+1], tg_kde[lb:rb+1], alpha=shade_alpha, color='tab:purple', zorder=2)
             ax6.plot(xlb, ylb, '|', ms=1.8*ms, color=base_color, alpha=base_alpha, zorder=6)
