@@ -127,7 +127,6 @@ min_span = 50
 # values outside these inclusive limits are skipped. Use None to disable a
 # limit. The None assignment is shown as an example; the active lower limit is
 # set to 350 below.
-# min_tg = None
 min_tg = 350
 min_tg = None
 max_tg = None
