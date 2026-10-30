@@ -4,3 +4,4 @@
 
 # ignore quick gpush script
 gpush.sh
+rm_pictures.sh
