@@ -1,0 +1,248 @@
+#
+# Below is the "loadable" mode for LUNAR/array_lmp_script.py to generate
+# the batch files and modified LAMMPS scripts for automatic bulk runs.
+# To make this script work go to line numbers (starting from 1) and 
+# modify the following:
+#   line53:  75        -> $<trate>
+#   line69:  1         -> $<replicate>
+#   line88:  datafile  -> copy_files[0]
+#   line140: aniso     -> $<box>
+#   line222: aniso     -> $<box>
+#
+#MODE: lmp_array = {'$<replicate>' : '[1, 2, 3, 4, 5]',
+#MODE:              '$<trate>' : '[75]',
+#MODE:              '$<box>' : '["iso", "aniso"]'}
+#MODE: 
+#MODE: batch_array = {'$<ncores>' : '16',
+#MODE:                '$<inv_ncores>' : '1/$<ncores>',
+#MODE:                '$<que>' : 'cmmr.q',
+#MODE:                '$<email>' : 'jdkemppa@mtu.edu',
+#MODE:                '$<input>' : '$<build_script>',
+#MODE:                '$<output>' : '$<build_script>.out'}
+#MODE: 
+#MODE: copy_files = ['PBZ_rep_$<replicate>_Tg_CTE_trate_$<trate>_temps_875-175K_loop_175K_$<box>.data'] # THIS WOULD NEED UPDATING AS WELL
+#MODE: 
+#MODE: mode = {'lmp_script': '../RFR-thermal/SUPERIOR/benzoxazine/Tg_CTE_Heating.script',
+#MODE:         'batch_script': '$<lmp_script>.sh',
+#MODE:         'auto_script': 'auto_submit_$<lmp_script>',
+#MODE:         'build_script': '$<lmp_script>.script',
+#MODE:         'build_directory': 'replicate_$<replicate>_hrate_second_$<trate>_$<box>',
+#MODE:         'lmp_script_find': '$<lmp_script>',
+#MODE:         'build_script_find': '$<build_script>',
+#MODE:         'auto_submit': 'qsub',
+#MODE:         'lmp_array': lmp_array,
+#MODE:         'batch_array': batch_array,
+#MODE:         'copy_files': copy_files}
+#
+#
+#---------Initialization---------
+units            real
+dimension        3
+newton           on
+boundary         p p p
+atom_style       full
+
+
+#--------InputParameters---------
+# Set temperature bounds, heating/cooling rate, datafile dump rate
+#   Heating sim if stemp < etemp, trate controls heating rate
+#   Cooling sim if stemp > etemp, trate controls cooling rate
+variable         wtemp equal 10    # Temperature (K) intervals to write datafiles
+variable         stemp equal 175   # Starting Temperature (K)
+variable         etemp equal 875   # Ending Temperature (K)
+variable         trate equal 75    # Heating/cooling rate (K/ns)
+variable         stime equal 250   # Stabilization time (ps)
+variable         press equal 1.0   # pressure (atm) 
+variable         stabilize equal 0 # 0=DO_NOT_STABILIZE and 1=STABILIZE
+
+# Sampling rate parameters:
+#   temp_length = temperature window in K
+#   temp_points = number of logged points per temp_length
+#     Example: temp_length=1, temp_points=1  -> log every 1 K
+#     Example: temp_length=1, temp_points=10 -> log every 0.1 K
+#   NOTE: wtemp may chop up the logfile differently then these
+#   settings, so be aware. The averaging is still correct though.
+variable         temp_length equal 1   # Define length of temp for which to set number of points in (1 is a good default)
+variable         temp_points equal 10  # Define N-points per temp length (1 is a good default - 1 data point per Kelvin)
+
+# Set naming convention
+variable     rep   string 1
+variable     sys   string PBZ
+variable     myid  string ${sys}_rep_${rep}_Tg_CTE_hrate_75_temps_${stemp}-${etemp}K
+
+
+#---------Force-field------------
+bond_style       class2
+angle_style      class2
+dihedral_style   class2
+improper_style   class2
+
+pair_style       lj/class2/coul/long 12.0
+kspace_style     pppm 1e-6
+pair_modify      mix sixthpower
+special_bonds    lj/coul 0 0 1
+
+neighbor         2.0 bin
+neigh_modify     delay 0 every 1 check yes one 5000 page 100000
+
+read_data        PBZ_rep_1_Tg_CTE_trate_75_temps_875-175K_loop_175K_aniso.data
+
+#--------Calculations-------------
+timestep         1.0
+
+# Stabilization run times
+variable         stab_steps equal round(v_stime*1000/dt)
+
+# Annealing run time and averaging invervals
+variable         temp_interval equal v_temp_length/v_temp_points
+variable         log_freq      equal round(1000000*v_temp_interval/(v_trate*dt))
+
+
+#-----------LoggingInfo-----------
+# Determine Time and temperature based on heating rate
+variable         Time equal step*dt/1000 # time in picoseconds
+
+restart          ${log_freq} rst1.a.${myid} rst2.a.${myid}
+thermo           ${log_freq}
+log              ${myid}.log.lammps
+thermo_style     custom step v_Time temp press etotal ke pe ebond eangle edihed evdwl eimp elong &
+                 density lx ly lz vol
+
+#--------Reset atom ids---------
+reset_atoms       id sort yes
+
+
+#--------Minimize (only run on heating sims)--------------
+if "(${etemp} > ${stemp}) && (${stabilize} == 1)" then &
+   "fix              1 all box/relax x 0 y 0 z 0" &
+   "minimize         1.0e-8 1.0e-8 100000 100000" &
+   "unfix            1" &
+   "reset_timestep   0" &
+else &
+   "print            'Skipping heating-only minimization for simulation'" &
+   "run              0 post no"
+
+
+#--------Room temp stabilization (only run on heating sims)-----
+if "(${etemp} > ${stemp}) && (${stabilize} == 1)" then &
+   "velocity         all create 300 875321" &
+   "fix              1 all npt temp 300 300 $(100*dt) aniso ${press} ${press} $(1000*dt)" &
+   "run              ${stab_steps}" &
+   "unfix            1" &
+   "write_data       ${myid}_stab_300K.data" &
+else &
+   "print            'Skipping 300 K stabilization for simulation'" &
+   "run              0 post no"
+
+
+#--------Temp initialization-----
+velocity         all create ${stemp} 875321
+fix              1 all npt temp ${stemp} ${stemp} $(100*dt) aniso ${press} ${press} $(1000*dt) 
+run              ${stab_steps}
+unfix            1
+write_data       ${myid}_stab_${stemp}K.data
+
+
+
+#--------Heating/Cooling sim------------
+# reset timestep (for trate compute)
+reset_timestep   0
+dump             1 all custom $(10*v_log_freq) ${myid}.dump id type x y z fx fy fz ix iy iz vx vy vz xu yu zu mass # every 10*${log_freq}
+dump_modify      1 pbc yes # ensure atom postions in dump are within the simulation cell
+
+# Determine total steps required for temperature ramp
+# Works for heating or cooling:
+#   stemp < etemp -> positive dTdS
+#   stemp > etemp -> negative dTdS
+# trate is treated as a positive magnitude in K/ns.
+variable         deltaT equal ${etemp}-${stemp}
+variable         steps  equal abs(round(1000000*v_deltaT/(v_trate*dt)))
+variable         dTdS   equal v_deltaT/v_steps
+
+# Set temperatures for each loop iteration.
+# write_steps is based on the temperature interval magnitude, so it is the
+# same for heating and cooling.
+variable         write_steps equal round(1000000*v_wtemp/(v_trate*dt))
+
+# Instantaneous target ramp temperature based on the current timestep.
+variable         ramp_temp equal ${stemp}+v_dTdS*step
+
+# Compute averages related to thermal properties
+variable         dens equal density
+variable         temp equal temp
+variable         vol  equal vol
+variable         lxx  equal lx
+variable         lyy  equal ly
+variable         lzz  equal lz
+
+fix              dens_ave all ave/time 1 ${log_freq} ${log_freq} v_dens
+fix              temp_ave all ave/time 1 ${log_freq} ${log_freq} v_temp
+fix              vol_ave  all ave/time 1 ${log_freq} ${log_freq} v_vol
+fix              lxx_ave  all ave/time 1 ${log_freq} ${log_freq} v_lxx
+fix              lyy_ave  all ave/time 1 ${log_freq} ${log_freq} v_lyy
+fix              lzz_ave  all ave/time 1 ${log_freq} ${log_freq} v_lzz
+
+# Compute stress averages
+compute          myTemp all temp
+compute          p all pressure myTemp
+variable         sxx equal -0.101325*c_p[1] #in MPa
+variable         syy equal -0.101325*c_p[2] #in MPa
+variable         szz equal -0.101325*c_p[3] #in MPa
+variable         sxy equal -0.101325*c_p[4] #in MPa
+variable         sxz equal -0.101325*c_p[5] #in MPa
+variable         syz equal -0.101325*c_p[6] #in MPa
+
+fix              sxx_ave all ave/time 1 ${log_freq} ${log_freq} v_sxx
+fix              syy_ave all ave/time 1 ${log_freq} ${log_freq} v_syy
+fix              szz_ave all ave/time 1 ${log_freq} ${log_freq} v_szz
+fix              sxy_ave all ave/time 1 ${log_freq} ${log_freq} v_sxy
+fix              sxz_ave all ave/time 1 ${log_freq} ${log_freq} v_sxz
+fix              syz_ave all ave/time 1 ${log_freq} ${log_freq} v_syz
+
+thermo_style     custom step v_Time temp press etotal ke pe etotal ecouple econserve evdwl ecoul epair elong ebond eangle edihed eimp &
+                 density lx ly lz vol f_dens_ave f_lxx_ave f_lyy_ave f_lzz_ave f_vol_ave f_temp_ave v_ramp_temp &
+                 v_sxx v_syy v_szz v_sxy v_sxz v_syz f_sxx_ave f_syy_ave f_szz_ave f_sxy_ave f_sxz_ave f_syz_ave
+
+
+# Run in chunks until the exact requested ramp length is reached.
+label loop
+
+variable remaining_steps equal v_steps-step
+variable run_steps equal v_write_steps
+
+if "${remaining_steps} < ${write_steps}" then &
+   "variable run_steps delete" &
+   "variable run_steps equal v_remaining_steps"
+
+if "${run_steps} <= 0" then "jump SELF ramp_done"
+
+variable Tstart equal ${stemp}+v_dTdS*step
+variable Tfinal equal ${stemp}+v_dTdS*(step+v_run_steps)
+
+fix 1 all npt temp ${Tstart} ${Tfinal} $(100*dt) aniso ${press} ${press} $(1000*dt)
+
+run ${run_steps} post no
+
+unfix 1
+
+variable rtemp equal round(${ramp_temp}) # round to nearest int
+variable rtime equal round(${Time})      # round to nearest int
+write_data ${myid}_loop_${rtemp}K_${rtime}ps.data
+
+variable rtemp delete
+variable rtime delete
+variable Tstart delete
+variable Tfinal delete
+variable run_steps delete
+variable remaining_steps delete
+
+jump SELF loop
+label ramp_done
+
+# Write final data file and restart file
+variable         rtemp equal round(${ramp_temp}) # round to nearest int
+variable         rtime equal round(${Time})      # round to nearest int
+write_restart    ${myid}_${rtemp}K_${rtime}ps_end_of_loop.restart
+write_data       ${myid}_${rtemp}K_${rtime}ps_end_of_loop.data
+
+
