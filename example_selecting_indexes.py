@@ -339,8 +339,8 @@ if __name__ == "__main__":
     uppers   = np.array( uppers )
     lowers   = np.array( lowers )
     widths   = uppers - lowers
-    tg_vals  = np.array( tgs )
-    slope_vals = np.array( slopes )
+    tgs      = np.array( tgs )
+    slopes   = np.array( slopes )
     glassy_slope = glassy_coeffs[1]
     
     # Compute the KDE
