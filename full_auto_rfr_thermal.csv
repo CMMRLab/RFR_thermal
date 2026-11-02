@@ -1,0 +1,6 @@
+filename, wildcards[0], glassy_cte, rubbery_cte, tg
+logfiles/heating1/aniso\PBZ_rep_1_Tg_CTE_hrate_75_temps_175-875K.log.lammps, 1, 6.563123782885967e-05, 0.0002033648507410167, 577.7845358270043
+logfiles/heating1/aniso\PBZ_rep_2_Tg_CTE_hrate_75_temps_175-875K.log.lammps, 2, 6.963714019506821e-05, 0.00019504247636145596, 610.8791901579393
+logfiles/heating1/aniso\PBZ_rep_3_Tg_CTE_hrate_75_temps_175-875K.log.lammps, 3, 4.864780855403335e-05, 0.00015489276915162686, 523.7210598527425
+logfiles/heating1/aniso\PBZ_rep_4_Tg_CTE_hrate_75_temps_175-875K.log.lammps, 4, 5.0579303251823593e-05, 0.00011908333607665048, 411.43276080291906
+logfiles/heating1/aniso\PBZ_rep_5_Tg_CTE_hrate_75_temps_175-875K.log.lammps, 5, 5.426428332101923e-05, 0.0001538035376729388, 504.0475473451074
