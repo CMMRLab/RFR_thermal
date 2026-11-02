@@ -315,9 +315,10 @@ if __name__ == "__main__":
         nf = len(files)
         percentage = 100*ns/nf
         print('Sucessfully processed {} of {} ({:.2f} %)'.format(ns, nf, percentage))
-        print('Failed files for unknown reasons:')
-        for file in failed_files:
-            print('- {}'.format(file))
+        if failed_files:
+            print('\n\nFailed files for unknown reasons:')
+            for file in failed_files:
+                print('- {}'.format(file))
         
         
         # Log all results to .csv file
