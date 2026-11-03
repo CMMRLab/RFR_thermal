@@ -98,7 +98,7 @@ sections = 'all' # earlier section are setting up the temperature ramp
 #   plot_orientation = 'long' # makes plot long vertically (good for papers)
 #   plot_orientation = 'wide' # makes plot wide vertically (good for presentations)
 plot_orientation = 'long'
-plot_orientation = 'wide'
+#plot_orientation = 'wide'
 
 
 ######################
