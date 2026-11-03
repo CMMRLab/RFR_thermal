@@ -2,7 +2,7 @@
 """
 @author: Josh Kemppainen
 Revision 1.0
-October 28, 2025
+November 3, 2026
 Michigan Technological University
 1400 Townsend Dr.
 Houghton, MI 49931
@@ -43,6 +43,7 @@ import numpy as np
 import traceback
 import difflib
 import glob
+import time
 import os
 
 plt.rcParams.update({'figure.max_open_warning': 0}) # Will suppress warnings about number of figures
@@ -82,12 +83,13 @@ plt.rcParams.update({
 ###############
 # Data Inputs #
 ###############
-# logfile to read in
-logfile = 'logfiles/heating1/iso/PBZ_rep_2_Tg_CTE_hrate_75_temps_175-875K.log.lammps'
+# logfiles to read in using wildcard matching. See second logfole variable
+# for how to set wildcars.
 logfile = 'logfiles/heating1/aniso/PBZ_rep_*_Tg_CTE_hrate_75_temps_175-875K.log.lammps'
 logfile = 'logfiles/*/*/*_rep_*_Tg_CTE_*_*_temps_*-*.log.lammps'
 
 
+# Name for curated results (.csv for tg and CTEs and .pdf for all plots)
 array_file = 'full_auto_rfr_thermal'
 
 
@@ -261,6 +263,17 @@ if __name__ == "__main__":
     # Start full-auto wildcard processing #
     #-------------------------------------#
     files = glob.glob(logfile)
+    try: # Try sorting files
+        from natsort import natsorted
+        files = natsorted(files)
+        print('Read in logfiles were sorted using natsort, thus they should be iterated through')
+        print('in a sequence that represents evolution or progression and logged in that order.')
+    except:
+        files = sorted(files)
+        print('WARNING natsort was not installed and read in logfiles were sorted using pythons')
+        print('sorted function. The file iteration sequence may be unorder from a evolution or')
+        print('progression stand point. Depending on the names given to the read in files. You may')
+        print('intall natsort with:  pip3 install natsort   (if pip manager is installed)')
     if not files:
         print('WARNING logfile="{}" did not match with any files. Skipping Full-Auto run.'.format(logfile))
     if files:
@@ -269,9 +282,15 @@ if __name__ == "__main__":
         array_data = {} # {'filename':[[wildcards], tg, glassy_cte, rubbery_cte]}
         figures = {} # {'filename': fig_instance}
         processed_files, failed_files = [], []
-        for file in files:
-            print('\nStarting analysis for: ', file)
-            try:
+        loop_time = time.time()
+        for n, file in enumerate(files, 1):
+            print('\n\nStarting analysis:')
+            print(' - logfile                        : {}'.format(logfile))
+            print(' - matched file                   : {}'.format(file))
+            print(' - elapsed time                   : {:.2f} (seconds)'.format(time.time() - loop_time))
+            print(' - progress                       : {} of {} ({:.2f}%)'.format(n, len(files), 100*(n/len(files))))
+            
+            try: # There are various reasons this could crash (no file, no data ....)
                 # Get wildcards for logging
                 wildcards = get_glob_wildcards(logfile, file)
                 
@@ -397,3 +416,8 @@ if __name__ == "__main__":
         finally:
             pdf.close()
             figures.clear()
+            
+    # Full run time
+    #--------------
+    execution_time = (time.time() - loop_time)
+    log.out('\n\nArray time in seconds: ' + str(execution_time))
