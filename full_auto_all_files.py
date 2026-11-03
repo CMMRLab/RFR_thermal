@@ -288,7 +288,7 @@ if __name__ == "__main__":
             print(' - logfile                        : {}'.format(logfile))
             print(' - matched file                   : {}'.format(file))
             print(' - elapsed time                   : {:.2f} (seconds)'.format(time.time() - loop_time))
-            print(' - progress                       : {} of {} ({:.2f}%)'.format(n, len(files), 100*(n/len(files))))
+            print(' - progress                       : {} of {} ({:.2f} %)'.format(n, len(files), 100*(n/len(files))))
             
             try: # There are various reasons this could crash (no file, no data ....)
                 # Get wildcards for logging
@@ -333,7 +333,7 @@ if __name__ == "__main__":
         ns = len(processed_files)
         nf = len(files)
         percentage = 100*ns/nf
-        print('Sucessfully processed {} of {} ({:.2f} %)'.format(ns, nf, percentage))
+        print('\n\nSuccessfully processed {} of {} ({:.2f} %)'.format(ns, nf, percentage))
         if failed_files:
             print('\n\nFailed files for unknown reasons:')
             for file in failed_files:
@@ -420,4 +420,4 @@ if __name__ == "__main__":
     # Full run time
     #--------------
     execution_time = (time.time() - loop_time)
-    log.out('\n\nArray time in seconds: ' + str(execution_time))
+    print('\n\nArray time in seconds: ' + str(execution_time))
